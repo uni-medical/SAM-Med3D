@@ -31,7 +31,7 @@
 
 
 
-### 💡 Dice on Different Anatomical Architecture and Lesions
+### 💡 Dice on Different Anatomical Structures and Lesions
 | **Model**    | **Prompt**   | **A&T** | **Bone** | **Brain** | **Cardiac** | **Gland** | **Muscle** | **Seen Lesion** | **Unseen Lesion** |
 |--------------|--------------|---------|----------|-----------|-------------|-----------|------------|-----------------|-------------------|
 | SAM          | N points     | 17.19   | 22.32    | 17.68     | 2.82        | 11.62     | 3.50       | 12.03           | 8.88              |
