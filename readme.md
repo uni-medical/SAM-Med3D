@@ -6,9 +6,33 @@
 </div>
 
 ## 🌟 Highlights
-- 📚 Curated the most extensive volumetric medical dataset to date for training, boasting 131K 3D masks.
+- 📚 Curated the most extensive volumetric medical dataset to date for training, boasting 131K 3D masks and 247 categories.
 - 🚤 Achieved efficient promptable segmentation, requiring 10 to 100 times fewer prompt points for satisfactory 3D outcomes.
 - 🏆 Conducted a thorough assessment of SAM-Med3D across 15 frequently-used volumetric medical image segmentation datasets.
+
+## 🔨 Usage
+Prepare your own dataset and refer to the samples in `data/validation` to replace them according to your specific scenario. 
+Then you can simply run `bash infer.sh` to test SAM-Med3D on your data. 
+Make sure the masks are processed into the one-hot format (have only two values: the main image (foreground) and the background).
+
+```
+python inference3D_union_val.py --seed 2023\
+ -vp ./results/vis_sam_med3d \
+ -cp ./ckpt/sam_med3d.pth \
+ -tdp ./data/validation -nc 1 \
+ --save_name ./results/sam_med3d.py
+```
+
+- vp: visualization path, dir to save the final visualization files
+- cp: checkpoint path
+- tdp: test data path, where your data is placed
+- nc: number of clicks of prompt points
+- save_name: filename to save evaluation results 
+
+
+## 🔗 Checkpoint
+
+Our checkpoint can be downloaded from [Google Drive](https://drive.google.com/file/d/1PFeUjlFMAppllS9x1kAWyCYUJM9re2Ub/view?usp=sharing) and [BaiduYun (pwd:r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3).
 
 ## 🗼 Method
 <div align="center">
@@ -31,7 +55,7 @@
 
 
 
-### 💡 Dice on Different Anatomical Structures and Lesions
+### 💡 Dice on Different Anatomical Architecture and Lesions
 | **Model**    | **Prompt**   | **A&T** | **Bone** | **Brain** | **Cardiac** | **Gland** | **Muscle** | **Seen Lesion** | **Unseen Lesion** |
 |--------------|--------------|---------|----------|-----------|-------------|-----------|------------|-----------------|-------------------|
 | SAM          | N points     | 17.19   | 22.32    | 17.68     | 2.82        | 11.62     | 3.50       | 12.03           | 8.88              |
@@ -50,11 +74,20 @@
   <img src="assets/vis_modal.png">
 </div>
 
+
+## 🗓️ Ongoing
+- [ ] Train code release
+- [x] Test code release
+- [x] Pre-trained model release
+- [x] Paper release
+
+
 ## 🎫 License
 This project is released under the [Apache 2.0 license](LICENSE). 
 
-<!-- ## 🙏 Acknowledgement
-xxx -->
+## 🙏 Acknowledgement
+- We thank all medical workers and dataset owners for making public datasets available to the community.
+- Thanks to the open-source of the following projects: [Segment Anything](https://github.com/facebookresearch/segment-anything) &#8194;
 
 ## 👋 Hiring & Global Collaboration
 - **Hiring:** We are hiring researchers, engineers, and interns in General Vision Group, Shanghai AI Lab. If you are interested in Medical Foundation Models and General Medical AI, including designing benchmark datasets, general models, evaluation systems, and efficient tools, please contact us.
