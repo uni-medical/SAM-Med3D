@@ -1,5 +1,4 @@
-# SAM-Med3D \[[Paper](https://arxiv.org/abs/2309.03906)]
-
+# SAM-Med3D \[[Paper](https://arxiv.org/abs/2310.15161)]
 
 <div align="center">
   <img src="assets/motivation.png">
