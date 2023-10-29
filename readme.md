@@ -114,9 +114,9 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
 
 ## 🗓️ Ongoing 
 - [ ] Dataset release
-- [x] Train code of SAM-Med3D release
-- [x] Test code of 2D models (SAM & SAM-Med2D) on 3D image release
-- [x] Test code release
+- [x] Train code release
+- [x] [Feature] Evaluation on 3D data with 2D models (slice-by-slice)
+- [x] Evaluation code release
 - [x] Pre-trained model release
 - [x] Paper release
 
