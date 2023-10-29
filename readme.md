@@ -1,4 +1,5 @@
-# SAM-Med3D \[[Paper](https://arxiv.org/abs/2310.15161)]
+# SAM-Med3D \[[Paper](https://arxiv.org/abs/2309.03906)]
+
 
 <div align="center">
   <img src="assets/motivation.png">
@@ -10,12 +11,44 @@
 - 🏆 Conducted a thorough assessment of SAM-Med3D across 15 frequently-used volumetric medical image segmentation datasets.
 
 ## 🔨 Usage
+### Training
+
+To train the SAM-Med3D model on your own data, follow these steps:
+
+1. **Prepare Your Training Data**: 
+   Ensure that your training data is organized according to the structure shown in the `data/validation` directories. Here is an example of how your file structure should look:
+
+```
+data/train
+      ├── adrenal
+      │ ├── ct_WORD
+      │ │ ├── imagesTr
+      │ │ │ ├── word_0025.nii.gz
+      │ │ │ ├── ...
+      │ │ ├── labelsTr
+      │ │ │ ├── word_0025.nii.gz
+      │ │ │ ├── ...
+      ├── ...
+```
+Then modify the `utils/data_paths.py` according to your own data.
+
+
+2. **Run the Training Script**: 
+Execute the following command in your terminal:
+
+```
+bash train.sh
+```
+This will start the training process of the SAM-Med3D model on your prepared data.
+
+
+### Evaluation
 Prepare your own dataset and refer to the samples in `data/validation` to replace them according to your specific scenario. 
 Then you can simply run `bash infer.sh` to test SAM-Med3D on your data. 
 Make sure the masks are processed into the one-hot format (have only two values: the main image (foreground) and the background).
 
 ```
-python inference3D_union_val.py --seed 2023\
+python validation.py --seed 2023\
  -vp ./results/vis_sam_med3d \
  -cp ./ckpt/sam_med3d.pth \
  -tdp ./data/validation -nc 1 \
@@ -28,10 +61,15 @@ python inference3D_union_val.py --seed 2023\
 - nc: number of clicks of prompt points
 - save_name: filename to save evaluation results 
 
+For validation of SAM and SAM-Med2D on 3D volumetric data, you can refer to `infer_sam.sh` and `infer_med2d.sh` for details.
+
+Hint: We also provide a simple script `sum_result.py` to help summarize the results from file like `./results/sam_med3d.py`. 
 
 ## 🔗 Checkpoint
 
-Our checkpoint can be downloaded from [Google Drive](https://drive.google.com/file/d/1PFeUjlFMAppllS9x1kAWyCYUJM9re2Ub/view?usp=sharing) and [BaiduYun (pwd:r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3).
+Our checkpoint of SAM-Med3D can be downloaded from [Google Drive]() and [Baidu NetDisk (pwd:r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3).
+
+Other checkpoints are available with their official link: [SAM](https://drive.google.com/file/d/1_U26MIJhWnWVwmI5JkGg2cd2J6MvkqU-/view?usp=drive_link) and [SAM-Med2D](https://drive.google.com/file/d/1ARiB5RkSsWmAB_8mqWnwDF8ZKTtFwsjl/view?usp=drive_link).
 
 ## 🗼 Method
 <div align="center">
@@ -74,8 +112,10 @@ Our checkpoint can be downloaded from [Google Drive](https://drive.google.com/fi
 </div>
 
 
-## 🗓️ Ongoing
-- [ ] Train code release
+## 🗓️ Ongoing 
+- [ ] Dataset release
+- [x] Train code of SAM-Med3D release
+- [x] Test code of 2D models (SAM & SAM-Med2D) on 3D image release
 - [x] Test code release
 - [x] Pre-trained model release
 - [x] Paper release
@@ -84,16 +124,9 @@ Our checkpoint can be downloaded from [Google Drive](https://drive.google.com/fi
 ## 🎫 License
 This project is released under the [Apache 2.0 license](LICENSE). 
 
-## 💬 Discussion Group
-<p align="center"><img width="300" alt="image" src="assets/QRcode.jpg"></p> 
-
-BTW, welcome to follow our [Zhihu official account](https://www.zhihu.com/people/gmai-38), we will share more information on medical imaging there.
-
 ## 🙏 Acknowledgement
 - We thank all medical workers and dataset owners for making public datasets available to the community.
-- Thanks to the open-source of the following projects:
-  - [Segment Anything](https://github.com/facebookresearch/segment-anything) &#8194;
-  - [SAM-Med2D](https://github.com/OpenGVLab/SAM-Med2D/tree/main)
+- Thanks to the open-source of the following projects: [Segment Anything](https://github.com/facebookresearch/segment-anything) &#8194;
 
 ## 👋 Hiring & Global Collaboration
 - **Hiring:** We are hiring researchers, engineers, and interns in General Vision Group, Shanghai AI Lab. If you are interested in Medical Foundation Models and General Medical AI, including designing benchmark datasets, general models, evaluation systems, and efficient tools, please contact us.
