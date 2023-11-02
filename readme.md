@@ -67,7 +67,7 @@ Hint: We also provide a simple script `sum_result.py` to help summarize the resu
 
 ## 🔗 Checkpoint
 
-Our checkpoint of SAM-Med3D can be downloaded from [Google Drive]() and [Baidu NetDisk (pwd:r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3).
+Our checkpoint of SAM-Med3D can be downloaded from [Google Drive](https://drive.google.com/file/d/1PFeUjlFMAppllS9x1kAWyCYUJM9re2Ub/view?usp=drive_link) and [Baidu NetDisk (pwd:r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3).
 
 Other checkpoints are available with their official link: [SAM](https://drive.google.com/file/d/1_U26MIJhWnWVwmI5JkGg2cd2J6MvkqU-/view?usp=drive_link) and [SAM-Med2D](https://drive.google.com/file/d/1ARiB5RkSsWmAB_8mqWnwDF8ZKTtFwsjl/view?usp=drive_link).
 
