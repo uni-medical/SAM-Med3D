@@ -8,7 +8,7 @@
 ## 🌟 Highlights
 - 📚 Curated the most extensive volumetric medical dataset to date for training, boasting 131K 3D masks and 247 categories.
 - 🚤 Achieved efficient promptable segmentation, requiring 10 to 100 times fewer prompt points for satisfactory 3D outcomes.
-- 🏆 Conducted a thorough assessment of SAM-Med3D across 15 frequently-used volumetric medical image segmentation datasets.
+- 🏆 Conducted a thorough assessment of SAM-Med3D across 15 frequently used volumetric medical image segmentation datasets.
 
 ## 🔨 Usage
 ### Training
@@ -124,9 +124,16 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
 ## 🎫 License
 This project is released under the [Apache 2.0 license](LICENSE). 
 
+## 💬 Discussion Group
+<p align="center"><img width="300" alt="image" src="assets/QRcode.jpg"></p> 
+
+BTW, welcome to follow our [Zhihu official account](https://www.zhihu.com/people/gmai-38), we will share more information on medical imaging there.
+
 ## 🙏 Acknowledgement
 - We thank all medical workers and dataset owners for making public datasets available to the community.
-- Thanks to the open-source of the following projects: [Segment Anything](https://github.com/facebookresearch/segment-anything) &#8194;
+- Thanks to the open-source of the following projects:
+  - [Segment Anything](https://github.com/facebookresearch/segment-anything) &#8194;
+  - [SAM-Med2D](https://github.com/OpenGVLab/SAM-Med2D/tree/main)
 
 ## 👋 Hiring & Global Collaboration
 - **Hiring:** We are hiring researchers, engineers, and interns in General Vision Group, Shanghai AI Lab. If you are interested in Medical Foundation Models and General Medical AI, including designing benchmark datasets, general models, evaluation systems, and efficient tools, please contact us.
