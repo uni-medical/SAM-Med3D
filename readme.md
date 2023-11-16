@@ -5,6 +5,10 @@
   <img src="assets/motivation.png">
 </div>
 
+## 💪 Recommendation
+If you are interested in computer vision, 
+we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exciting projects like [SAM-Med2D](https://github.com/OpenGVLab/SAM-Med2D/tree/main)!
+
 ## 🌟 Highlights
 - 📚 Curated the most extensive volumetric medical dataset to date for training, boasting 131K 3D masks and 247 categories.
 - 🚤 Achieved efficient promptable segmentation, requiring 10 to 100 times fewer prompt points for satisfactory 3D outcomes.
