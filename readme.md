@@ -129,7 +129,7 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
 This project is released under the [Apache 2.0 license](LICENSE). 
 
 ## 💬 Discussion Group
-<p align="center"><img width="300" alt="image" src="assets/QRcode.jpg"></p> 
+<p align="center"><img width="300" alt="image" src="assets/QRCode.jpg"></p> 
 
 BTW, welcome to follow our [Zhihu official account](https://www.zhihu.com/people/gmai-38), we will share more information on medical imaging there.
 
