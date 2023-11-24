@@ -6,7 +6,7 @@
 </div>
 
 ## 🔥🌻📰 News 📰🌻🔥
-- **[New Checkpoints Release]** Finetuned SAM-Med3D for organ/brain segmentation will be released soon! 
+- **[New Checkpoints Release]** Finetuned SAM-Med3D for organ/brain segmentation is released now! Hope you enjoy the enhanced performance for specific tasks 😉. 
 - **[Recommendation]** If you are interested in computer vision, 
 we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exciting projects like [SAM-Med2D](https://github.com/OpenGVLab/SAM-Med2D/tree/main)!
 
