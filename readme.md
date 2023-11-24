@@ -5,8 +5,9 @@
   <img src="assets/motivation.png">
 </div>
 
-## 💪 Recommendation
-If you are interested in computer vision, 
+## 🔥🌻📰 News 📰🌻🔥
+- **[New Checkpoints Release]** Finetuned SAM-Med3D for organ/brain segmentation will be released soon! 
+- **[Recommendation]** If you are interested in computer vision, 
 we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exciting projects like [SAM-Med2D](https://github.com/OpenGVLab/SAM-Med2D/tree/main)!
 
 ## 🌟 Highlights
@@ -15,9 +16,9 @@ we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exc
 - 🏆 Conducted a thorough assessment of SAM-Med3D across 15 frequently used volumetric medical image segmentation datasets.
 
 ## 🔨 Usage
-### Training
+### Training / Fine-tuning
 
-To train the SAM-Med3D model on your own data, follow these steps:
+To train the SAM-Med3D model on your own data (we recommend fine-tuning with SAM-Med3D pre-trained weights from [link](https://github.com/uni-medical/SAM-Med3D#-checkpoint)), follow these steps:
 
 1. **Prepare Your Training Data**: 
    Ensure that your training data is organized according to the structure shown in the `data/validation` directories. Here is an example of how your file structure should look:
@@ -36,14 +37,31 @@ data/train
 ```
 Then modify the `utils/data_paths.py` according to your own data.
 
+2. **(Recommand) Prepare the Pre-trained Weights**
 
-2. **Run the Training Script**: 
-Execute the following command in your terminal:
+Download the checkpoint from [ckpt section](https://github.com/uni-medical/SAM-Med3D#-checkpoint) and move the pth file into `SAM_Med3D/ckpt/sam_med3d.pth`.
+
+3. **Run the Training Script**: 
+Run `bash train.sh` to execute the following command in your terminal:
 
 ```
-bash train.sh
+python train.py --multi_gpu --task_name ${tag}
 ```
 This will start the training process of the SAM-Med3D model on your prepared data.
+
+The key options are listed below:
+
+- task_name: task name
+- checkpoint: pre-trained checkpoint
+- work_dir: results folder for log and ckpt
+- multi_gpu: use multiple GPU with DDP
+- gpu_ids: set gpu ids used for training
+- num_epochs: number of epoches
+- batch_size: batch size for training
+- lr: learning rate for training
+
+
+**Hint**: Use the `--checkpoint` to set the pre-trained weight path, the model will be trained from scratch if no ckpt in the path is found!
 
 
 ### Evaluation
@@ -70,8 +88,11 @@ For validation of SAM and SAM-Med2D on 3D volumetric data, you can refer to `inf
 Hint: We also provide a simple script `sum_result.py` to help summarize the results from file like `./results/sam_med3d.py`. 
 
 ## 🔗 Checkpoint
-
-Our checkpoint of SAM-Med3D can be downloaded from [Google Drive](https://drive.google.com/file/d/1PFeUjlFMAppllS9x1kAWyCYUJM9re2Ub/view?usp=drive_link) and [Baidu NetDisk (pwd:r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3).
+| Model | Google Drive | Baidu NetDisk |
+|----------|----------|----------|
+| SAM-Med3D | [Download](https://drive.google.com/file/d/1PFeUjlFMAppllS9x1kAWyCYUJM9re2Ub/view?usp=drive_link) | [Download (pwd:r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3) |
+| SAM-Med3D-organ    | TBD | TBD |
+| SAM-Med3D-brain    | TBD | TBD |
 
 Other checkpoints are available with their official link: [SAM](https://drive.google.com/file/d/1_U26MIJhWnWVwmI5JkGg2cd2J6MvkqU-/view?usp=drive_link) and [SAM-Med2D](https://drive.google.com/file/d/1ARiB5RkSsWmAB_8mqWnwDF8ZKTtFwsjl/view?usp=drive_link).
 
@@ -124,6 +145,17 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
 - [x] Pre-trained model release
 - [x] Paper release
 
+## 📬 Citation
+```
+@misc{wang2023sammed3d,
+      title={SAM-Med3D}, 
+      author={Haoyu Wang and Sizheng Guo and Jin Ye and Zhongying Deng and Junlong Cheng and Tianbin Li and Jianpin Chen and Yanzhou Su and Ziyan Huang and Yiqing Shen and Bin Fu and Shaoting Zhang and Junjun He and Yu Qiao},
+      year={2023},
+      eprint={2310.15161},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
+```
 
 ## 🎫 License
 This project is released under the [Apache 2.0 license](LICENSE). 
