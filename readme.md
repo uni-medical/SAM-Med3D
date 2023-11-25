@@ -16,7 +16,7 @@ we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exc
 - 🏆 Conducted a thorough assessment of SAM-Med3D across 15 frequently used volumetric medical image segmentation datasets.
 
 ## 🔨 Usage
-### Training / Fine-tuning
+### Training / Fine-tuning (multi-GPU)
 
 To train the SAM-Med3D model on your own data (we recommend fine-tuning with SAM-Med3D pre-trained weights from [link](https://github.com/uni-medical/SAM-Med3D#-checkpoint)), follow these steps:
 
