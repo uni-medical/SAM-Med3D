@@ -271,6 +271,7 @@ class BaseTrainer:
             sam_model = self.model.module
         else:
             sam_model = self.model
+            self.args.rank = -1
         
         if not self.args.multi_gpu or (self.args.multi_gpu and self.args.rank == 0):
             tbar = tqdm(self.dataloaders)
