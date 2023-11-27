@@ -6,7 +6,7 @@
 </div>
 
 ## 🔥🌻📰 News 📰🌻🔥
-- **[New Checkpoints Release]** Finetuned SAM-Med3D for organ/brain segmentation is released now! Hope you enjoy the enhanced performance for specific tasks 😉. 
+- **[New Checkpoints Release]** Finetuned SAM-Med3D for organ/brain segmentation is released now! Hope you enjoy the enhanced performance for specific tasks 😉. Details are in [results](https://github.com/uni-medical/SAM-Med3D/blob/main/readme.md#-dice-on-different-anatomical-architecture-and-lesions) and [ckpt](https://github.com/uni-medical/SAM-Med3D#-checkpoint).
 - **[Recommendation]** If you are interested in computer vision, 
 we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exciting projects like [SAM-Med2D](https://github.com/OpenGVLab/SAM-Med2D/tree/main)!
 
@@ -17,12 +17,18 @@ we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exc
 
 ## 🔨 Usage
 ### Training / Fine-tuning
+(we recommend fine-tuning with SAM-Med3D pre-trained weights from [link](https://github.com/uni-medical/SAM-Med3D#-checkpoint))
 
-To train the SAM-Med3D model on your own data (we recommend fine-tuning with SAM-Med3D pre-trained weights from [link](https://github.com/uni-medical/SAM-Med3D#-checkpoint)), follow these steps:
+To train the SAM-Med3D model on your own data, follow these steps:
 
-1. **Prepare Your Training Data**: 
-   Ensure that your training data is organized according to the structure shown in the `data/validation` directories. Here is an example of how your file structure should look:
+#### 0. **(Recommend) Prepare the Pre-trained Weights**
 
+Download the checkpoint from [ckpt section](https://github.com/uni-medical/SAM-Med3D#-checkpoint) and move the pth file into `SAM_Med3D/ckpt/sam_med3d.pth`.
+
+
+#### 1. Prepare Your Training Data (from nnU-Net-style dataset): 
+
+Ensure that your training data is organized according to the structure shown in the `data/validation` directories. The target file structures should be like the following:
 ```
 data/train
       ├── adrenal
@@ -35,13 +41,52 @@ data/train
       │ │ │ ├── ...
       ├── ...
 ```
-Then modify the `utils/data_paths.py` according to your own data.
 
-2. **(Recommend for fine-tuning) Prepare the Pre-trained Weights**
+> If the original data are in the **nnU-Net style**, follow these steps:
+> 
+> For a nnU-Net style dataset, the original file structure should be:
+> ```
+> Dataset10_WORD
+>      ├── imagesTr
+>      │ ├── word_0025.nii.gz
+>      │ ├── ...
+>      ├── labelsTr
+>      │ ├── word_0025.nii.gz
+>      │ ├── ...
+> ```
+> If the labels have multiple classes, you should first split them into multiple binary labels, then re-organize them into multiple sub-folders.
+> ```
+> data/train
+>       ├── adrenal
+>       │ ├── ct_WORD
+>       │ │ ├── imagesTr
+>       │ │ │ ├── word_0025.nii.gz
+>       │ │ │ ├── ...
+>       │ │ ├── labelsTr
+>       │ │ │ ├── word_0025.nii.gz (binary label)
+>       │ │ │ ├── ...
+>       ├── liver
+>       │ ├── ct_WORD
+>       │ │ ├── imagesTr
+>       │ │ │ ├── word_0025.nii.gz
+>       │ │ │ ├── ...
+>       │ │ ├── labelsTr
+>       │ │ │ ├── word_0025.nii.gz (binary label)
+>       │ │ │ ├── ...
+>       ├── ...
+> ```
 
-Download the checkpoint from [ckpt section](https://github.com/uni-medical/SAM-Med3D#-checkpoint) and move the pth file into `SAM_Med3D/ckpt/sam_med3d.pth`.
+Then, modify the `utils/data_paths.py` according to your own data.
+```
+img_datas = [
+"data/train/adrenal/ct_WORD",
+"data/train/liver/ct_WORD",
+...
+]
+```
 
-3. **Run the Training Script**: 
+
+#### 2. **Run the Training Script**: 
 Run `bash train.sh` to execute the following command in your terminal:
 
 ```
@@ -122,7 +167,9 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
 | SAM          | N points     | 17.19   | 22.32    | 17.68     | 2.82        | 11.62     | 3.50       | 12.03           | 8.88              |
 | SAM-Med2D    | N points     | 46.79   | 47.52    | 19.24     | 32.23       | 43.55     | 35.57      | 26.08           | 44.87             |
 | SAM-Med3D    | 1 point      | 46.80   | 54.77    | 34.48     | 46.51       | 57.28     | 53.28      | 42.02           | 40.53             |
-| SAM-Med3D    | 10 points    | 55.81   | 69.13    | 40.71     | 52.86       | 65.01     | 67.28      | 50.52           | 48.44             |
+| SAM-Med3D    | 10 points    | 55.81   | 69.13    | 40.71     | 52.86       | 65.01     | 67.28      | 50.52           | **48.44**            |
+| **SAM-Med3D-brain** | 10 points | 51.71   | -        | **62.77**     | 37.93       | 62.95     | 43.70      | 45.89           | 20.51             |
+| **SAM-Med3D-organ** | 10 points | **70.63**   | -        | 46.49     | **63.14**       | **73.01**     | **75.29**      | **53.02**           | 36.44             |
 
 > **Note:** Comparison from the perspective of anatomical structure and lesion. A&T represents Abdominal and Thorax targets. N denotes the count of slices containing the target object (10 ≤ N ≤ 200).
 
