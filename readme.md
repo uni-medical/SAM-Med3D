@@ -183,13 +183,13 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
 </div>
 
 
-## 🗓️ Ongoing 
+<!-- ## 🗓️ Ongoing 
 - [ ] Dataset release
 - [x] Train code release
 - [x] [Feature] Evaluation on 3D data with 2D models (slice-by-slice)
 - [x] Evaluation code release
 - [x] Pre-trained model release
-- [x] Paper release
+- [x] Paper release -->
 
 ## 📬 Citation
 ```
