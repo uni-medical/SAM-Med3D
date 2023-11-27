@@ -16,7 +16,7 @@ we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exc
 - 🏆 Conducted a thorough assessment of SAM-Med3D across 15 frequently used volumetric medical image segmentation datasets.
 
 ## 🔨 Usage
-### Training / Fine-tuning (multi-GPU)
+### Training / Fine-tuning
 
 To train the SAM-Med3D model on your own data (we recommend fine-tuning with SAM-Med3D pre-trained weights from [link](https://github.com/uni-medical/SAM-Med3D#-checkpoint)), follow these steps:
 
@@ -37,7 +37,7 @@ data/train
 ```
 Then modify the `utils/data_paths.py` according to your own data.
 
-2. **(Recommand) Prepare the Pre-trained Weights**
+2. **(Recommend for fine-tuning) Prepare the Pre-trained Weights**
 
 Download the checkpoint from [ckpt section](https://github.com/uni-medical/SAM-Med3D#-checkpoint) and move the pth file into `SAM_Med3D/ckpt/sam_med3d.pth`.
 
@@ -47,7 +47,7 @@ Run `bash train.sh` to execute the following command in your terminal:
 ```
 python train.py --multi_gpu --task_name ${tag}
 ```
-This will start the training process of the SAM-Med3D model on your prepared data.
+This will start the training process of the SAM-Med3D model on your prepared data. If you use only one GPU, remove the `--multi_gpu` flag.
 
 The key options are listed below:
 
@@ -62,7 +62,6 @@ The key options are listed below:
 
 
 **Hint**: Use the `--checkpoint` to set the pre-trained weight path, the model will be trained from scratch if no ckpt in the path is found!
-
 
 ### Evaluation
 Prepare your own dataset and refer to the samples in `data/validation` to replace them according to your specific scenario. 
