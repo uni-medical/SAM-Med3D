@@ -404,7 +404,7 @@ class BaseTrainer:
                     )
 
                 self.plot_result(self.losses, 'Dice + Cross Entropy Loss', 'Loss')
-                self.plot_result(self.dices, 'Dice', 'Dice')
+                # self.plot_result(self.dices, 'Dice', 'Dice')
         logger.info('=====================================================================')
         logger.info(f'Best loss: {self.best_loss}')
         logger.info(f'Best dice: {self.best_dice}')
