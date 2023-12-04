@@ -208,6 +208,7 @@ This project is released under the [Apache 2.0 license](LICENSE).
 
 ## 💬 Discussion Group
 <p align="center"><img width="300" alt="image" src="assets/QRCode.jpg"></p> 
+(If the QRCode is expired, please contact the Wechat account: Eugene Yonng.)
 
 BTW, welcome to follow our [Zhihu official account](https://www.zhihu.com/people/gmai-38), we will share more information on medical imaging there.
 
