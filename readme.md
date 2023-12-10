@@ -6,6 +6,7 @@
 </div>
 
 ## 🔥🌻📰 News 📰🌻🔥
+- **[New Checkpoints Release]** A newer version of finetuned SAM-Med3D named `SAM-Med3D-turbo` is released now. We fine-tuned it on 44 datasets ([list](https://github.com/uni-medical/SAM-Med3D/issues/2#issuecomment-1849002225)) to improve the performance. Hope this update can help you 🙂.
 - **[New Checkpoints Release]** Finetuned SAM-Med3D for organ/brain segmentation is released now! Hope you enjoy the enhanced performance for specific tasks 😉. Details are in [results](https://github.com/uni-medical/SAM-Med3D/blob/main/readme.md#-dice-on-different-anatomical-architecture-and-lesions) and [ckpt](https://github.com/uni-medical/SAM-Med3D#-checkpoint).
 - **[Recommendation]** If you are interested in computer vision, 
 we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exciting projects like [SAM-Med2D](https://github.com/OpenGVLab/SAM-Med2D/tree/main)!
@@ -132,11 +133,14 @@ For validation of SAM and SAM-Med2D on 3D volumetric data, you can refer to `inf
 Hint: We also provide a simple script `sum_result.py` to help summarize the results from file like `./results/sam_med3d.py`. 
 
 ## 🔗 Checkpoint
+**Our most recommended version is SAM-Med3D-turbo**
+
 | Model | Google Drive | Baidu NetDisk |
 |----------|----------|----------|
 | SAM-Med3D | [Download](https://drive.google.com/file/d/1PFeUjlFMAppllS9x1kAWyCYUJM9re2Ub/view?usp=drive_link) | [Download (pwd:r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3) |
 | SAM-Med3D-organ    | [Download](https://drive.google.com/file/d/1kKpjIwCsUWQI-mYZ2Lww9WZXuJxc3FvU/view?usp=sharing) | [Download (pwd:5t7v)](https://pan.baidu.com/s/1Dermdr-ZN8NMWELejF1p1w?pwd=5t7v) |
 | SAM-Med3D-brain    | [Download](https://drive.google.com/file/d/1otbhZs9uugSWkAbcQLLSmPB8jo5rzFL2/view?usp=sharing) | [Download (pwd:yp42)](https://pan.baidu.com/s/1S2-buTga9D4Nbrt6fevo8Q?pwd=yp42) |
+| SAM-Med3D-turbo    | [Download](https://drive.google.com/file/d/1MuqYRQKIZb4YPtEraK8zTKKpp-dUQIR9/view?usp=sharing) | [Download (pwd:l6ol)](https://pan.baidu.com/s/1OEVtiDc6osG0l9HkQN4hEg?pwd=l6ol) |
 
 Other checkpoints are available with their official link: [SAM](https://drive.google.com/file/d/1_U26MIJhWnWVwmI5JkGg2cd2J6MvkqU-/view?usp=drive_link) and [SAM-Med2D](https://drive.google.com/file/d/1ARiB5RkSsWmAB_8mqWnwDF8ZKTtFwsjl/view?usp=drive_link).
 
@@ -156,6 +160,7 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
 | SAM-Med2D    | N points     | 256×256×N                      | 4                | 42.75            |
 | SAM-Med3D    | 1 point      | 128×128×128                    | 2                | 49.91            |
 | SAM-Med3D    | 10 points    | 128×128×128                    | 6                | 60.94            |
+| **SAM-Med3D-turbo** | 10 points | 128×128×128                | 6                | 77.60            |
 
 > **Note:** Quantitative comparison of different methods on our evaluation dataset. Here, N denotes the count of slices containing the target object (10 ≤ N ≤ 200). Inference time is calculated with N=100, excluding the time for image processing and simulated prompt generation.
 
@@ -168,8 +173,9 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
 | SAM-Med2D    | N points     | 46.79   | 47.52    | 19.24     | 32.23       | 43.55     | 35.57      | 26.08           | 44.87             |
 | SAM-Med3D    | 1 point      | 46.80   | 54.77    | 34.48     | 46.51       | 57.28     | 53.28      | 42.02           | 40.53             |
 | SAM-Med3D    | 10 points    | 55.81   | 69.13    | 40.71     | 52.86       | 65.01     | 67.28      | 50.52           | **48.44**            |
-| **SAM-Med3D-brain** | 10 points | 51.71   | -        | **62.77**     | 37.93       | 62.95     | 43.70      | 45.89           | 20.51             |
-| **SAM-Med3D-organ** | 10 points | **70.63**   | -        | 46.49     | **63.14**       | **73.01**     | **75.29**      | **53.02**           | 36.44             |
+| **SAM-Med3D-brain** | 10 points | 51.71   | -        | **62.77** | 37.93    | 62.95     | 43.70      | 45.89           | 20.51             |
+| **SAM-Med3D-organ** | 10 points | 70.63   | -        | 46.49     | 63.14| **73.01** | 75.29      | 53.02           | 36.44             |
+| **SAM-Med3D-turbo** | 10 points | **83.96**|**85.34**| 46.08 |	**69.90** |	**90.97**  |	**91.62**      |	**64.80** | **61.00**     |
 
 > **Note:** Comparison from the perspective of anatomical structure and lesion. A&T represents Abdominal and Thorax targets. N denotes the count of slices containing the target object (10 ≤ N ≤ 200).
 
