@@ -203,6 +203,8 @@ class BaseTrainer:
             multimask_output=False,
         )
         prev_masks = F.interpolate(low_res_masks, size=gt3D.shape[-3:], mode='trilinear', align_corners=False)
+        prev_masks = torch.sigmoid(prev_masks)  
+        
         return low_res_masks, prev_masks
 
     def get_points(self, prev_masks, gt3D):
