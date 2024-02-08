@@ -77,7 +77,6 @@ for dataset in dataset_list:
     for idx, cls_name in meta_info["labels"].items():
         cls_name = cls_name.replace(" ", "_")
         idx = int(idx)
-        if(idx<9): continue
         dataset_name = dataset.split("_", maxsplit=1)[1]
         target_cls_dir = osp.join(target_dir, cls_name, dataset_name)
         target_img_dir = osp.join(target_cls_dir, "imagesTr")
