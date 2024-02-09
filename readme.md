@@ -55,7 +55,7 @@ data/train
 >      │ ├── word_0025.nii.gz
 >      │ ├── ...
 > ```
-> If the labels have multiple classes, you should first split them into multiple binary labels, then re-organize them into multiple sub-folders.
+> If the labels have multiple classes, you should first split them into multiple binary labels (reference script can be found in [script](https://github.com/uni-medical/SAM-Med3D/blob/b77585070b2f520ecd204b551a3f27715f5b3b43/utils/prepare_data_from_nnUNet.py)), then re-organize them into multiple sub-folders.
 > ```
 > data/train
 >       ├── adrenal
