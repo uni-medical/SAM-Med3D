@@ -29,9 +29,9 @@ Download the checkpoint from [ckpt section](https://github.com/uni-medical/SAM-M
 
 #### 1. Prepare Your Training Data (from nnU-Net-style dataset): 
 
-Ensure that your training data is organized according to the structure shown in the `data/validation` directories. The target file structures should be like the following:
+Ensure that your training data is organized according to the structure shown in the `data/medical_preprocessed` directories. The target file structures should be like the following:
 ```
-data/train
+data/medical_preprocessed
       ├── adrenal
       │ ├── ct_WORD
       │ │ ├── imagesTr
