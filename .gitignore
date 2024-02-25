@@ -1,4 +1,4 @@
-data/train/*
+data/*
 ckpt/*
 results/*
 work_dir/*
