@@ -111,14 +111,14 @@ The key options are listed below:
 
 ### Evaluation
 Prepare your own dataset and refer to the samples in `data/validation` to replace them according to your specific scenario. 
-Then you can simply run `bash infer.sh` to test SAM-Med3D on your data. 
+Then you can simply run `bash val.sh` to test SAM-Med3D on your data. 
 Make sure the masks are processed into the one-hot format (have only two values: the main image (foreground) and the background).
 
 ```
 python validation.py --seed 2023\
  -vp ./results/vis_sam_med3d \
- -cp ./ckpt/sam_med3d.pth \
- -tdp ./data/validation -nc 1 \
+ -cp ./ckpt/sam_med3d_turbo.pth \
+ -tdp ./data/medical_preprocessed -nc 1 \
  --save_name ./results/sam_med3d.py
 ```
 
@@ -128,7 +128,7 @@ python validation.py --seed 2023\
 - nc: number of clicks of prompt points
 - save_name: filename to save evaluation results 
 
-For validation of SAM and SAM-Med2D on 3D volumetric data, you can refer to `infer_sam.sh` and `infer_med2d.sh` for details.
+For validation of SAM and SAM-Med2D on 3D volumetric data, you can refer to `scripts/val_sam.sh` and `scripts/val_med2d.sh` for details.
 
 Hint: We also provide a simple script `sum_result.py` to help summarize the results from file like `./results/sam_med3d.py`. 
 
