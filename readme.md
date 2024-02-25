@@ -1,5 +1,11 @@
 # SAM-Med3D \[[Paper](https://arxiv.org/abs/2310.15161)]
 
+<a src="https://img.shields.io/badge/cs.CV-2310.15161-b31b1b?logo=arxiv&logoColor=red" href="https://arxiv.org/abs/2310.15161"> 
+<img src="https://img.shields.io/badge/cs.CV-2310.15161-b31b1b?logo=arxiv&logoColor=red">
+
+<a src="https://img.shields.io/badge/WeChat-Group-green?logo=wechat" href="https://github.com/uni-medical/SAM-Med3D/blob/main/assets/QRCode.jpg"> <img src="https://img.shields.io/badge/WeChat-Group-green?logo=wechat">
+</a>
+
 
 <div align="center">
   <img src="assets/motivation.png">
@@ -24,7 +30,7 @@ To train the SAM-Med3D model on your own data, follow these steps:
 
 #### 0. **(Recommend) Prepare the Pre-trained Weights**
 
-Download the checkpoint from [ckpt section](https://github.com/uni-medical/SAM-Med3D#-checkpoint) and move the pth file into `SAM_Med3D/ckpt/sam_med3d.pth`.
+Download the checkpoint from [ckpt section](https://github.com/uni-medical/SAM-Med3D#-checkpoint) and move the pth file into `SAM_Med3D/ckpt/` (We recommand to use `SAM-Med3D-turbo.pth`.).
 
 
 #### 1. Prepare Your Training Data (from nnU-Net-style dataset): 
