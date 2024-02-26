@@ -52,9 +52,9 @@ data/medical_preprocessed
 > 
 > For a nnU-Net style dataset, the original file structure should be:
 > ```
-> Dataset10_WORD
+> Task010_WORD
 >      ├── imagesTr
->      │ ├── word_0025.nii.gz
+>      │ ├── word_0025_0000.nii.gz
 >      │ ├── ...
 >      ├── labelsTr
 >      │ ├── word_0025.nii.gz
