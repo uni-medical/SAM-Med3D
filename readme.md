@@ -135,7 +135,7 @@ python validation.py --seed 2023\
 
 For validation of SAM and SAM-Med2D on 3D volumetric data, you can refer to `scripts/val_sam.sh` and `scripts/val_med2d.sh` for details.
 
-Hint: We also provide a simple script `sum_result.py` to help summarize the results from file like `./results/sam_med3d.py`. 
+Hint: We also provide a simple script `sum_result.py` to help summarize the results from files like `./results/sam_med3d.py`. 
 
 ## 🔗 Checkpoint
 **Our most recommended version is SAM-Med3D-turbo**
@@ -161,26 +161,27 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
 ### 💡 Overall Performance
 | **Model**    | **Prompt**   | **Resolution**                 | **Inference Time (s)** | **Overall Dice** |
 |--------------|--------------|--------------------------------|------------------|------------------|
-| SAM          | N points     | 1024×1024×N                    | 13               | 17.01            |
-| SAM-Med2D    | N points     | 256×256×N                      | 4                | 42.75            |
-| SAM-Med3D    | 1 point      | 128×128×128                    | 2                | 49.91            |
-| SAM-Med3D    | 10 points    | 128×128×128                    | 6                | 60.94            |
-| **SAM-Med3D-turbo** | 10 points | 128×128×128                | 6                | 77.60            |
+| SAM          | N points     | 1024×1024×N                    | 13               | 16.15            |
+| SAM-Med2D    | N points     | 256×256×N                      | 4                | 36.83            |
+| SAM-Med3D    | 1 point      | 128×128×128                    | 2                | 38.65            |
+| SAM-Med3D    | 10 points    | 128×128×128                    | 6                | 49.02            |
+| **SAM-Med3D-turbo** | 1 points | 128×128×128                 | 6                | 76.27            |
+| **SAM-Med3D-turbo** | 10 points | 128×128×128                | 6                | 80.71            |
 
 > **Note:** Quantitative comparison of different methods on our evaluation dataset. Here, N denotes the count of slices containing the target object (10 ≤ N ≤ 200). Inference time is calculated with N=100, excluding the time for image processing and simulated prompt generation.
 
 
 
 ### 💡 Dice on Different Anatomical Architecture and Lesions
-| **Model**    | **Prompt**   | **A&T** | **Bone** | **Brain** | **Cardiac** | **Gland** | **Muscle** | **Seen Lesion** | **Unseen Lesion** |
-|--------------|--------------|---------|----------|-----------|-------------|-----------|------------|-----------------|-------------------|
-| SAM          | N points     | 17.19   | 22.32    | 17.68     | 2.82        | 11.62     | 3.50       | 12.03           | 8.88              |
-| SAM-Med2D    | N points     | 46.79   | 47.52    | 19.24     | 32.23       | 43.55     | 35.57      | 26.08           | 44.87             |
-| SAM-Med3D    | 1 point      | 46.80   | 54.77    | 34.48     | 46.51       | 57.28     | 53.28      | 42.02           | 40.53             |
-| SAM-Med3D    | 10 points    | 55.81   | 69.13    | 40.71     | 52.86       | 65.01     | 67.28      | 50.52           | **48.44**            |
-| **SAM-Med3D-brain** | 10 points | 51.71   | -        | **62.77** | 37.93    | 62.95     | 43.70      | 45.89           | 20.51             |
-| **SAM-Med3D-organ** | 10 points | 70.63   | -        | 46.49     | 63.14| **73.01** | 75.29      | 53.02           | 36.44             |
-| **SAM-Med3D-turbo** | 10 points | **83.96**|**85.34**| 46.08 |	**69.90** |	**90.97**  |	**91.62**      |	**64.80** | **61.00**     |
+| **Model**    | **Prompt**   | **A&T** | **Bone** | **Brain** | **Cardiac** | **Muscle** | **Lesion** | **Unseen Organ** | **Unseen Lesion** |
+|--------------|--------------|---------|----------|-----------|-------------|------------|------------|-----------------|-------------------|
+| SAM          | N points     | 19.93   | 17.85    | 29.73     | 8.44        | 3.93       | 11.56      | 12.14           | 8.88   |
+| SAM-Med2D    | N points     | 50.47   | 32.70    | 36.00     | 40.18       | 43.85      | 24.90      | 19.36           | 44.87  |
+| SAM-Med3D    | 1 point      | 46.12   | 33.30    | 49.14     | 61.04       | 53.78      | 39.56      | 23.85           | 40.53  |
+| SAM-Med3D    | 10 points    | 58.61   | 43.52    | 54.01     | 68.50       | 69.45      | 47.87      | 29.05           | 48.44  |
+| **SAM-Med3D-turbo** |  1 points | 80.76 | 83.38  | 43.74     | 87.12       | 89.74      | 58.06      | 35.99           | 44.22  |
+| **SAM-Med3D-turbo** | 10 points | 85.42 | 85.34  | 61.27     | 90.97       | 91.62      | 64.80      | 48.10           | 62.72  |
+
 
 > **Note:** Comparison from the perspective of anatomical structure and lesion. A&T represents Abdominal and Thorax targets. N denotes the count of slices containing the target object (10 ≤ N ≤ 200).
 
