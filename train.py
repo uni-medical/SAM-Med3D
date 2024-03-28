@@ -31,15 +31,16 @@ parser.add_argument('--task_name', type=str, default='union_train')
 parser.add_argument('--click_type', type=str, default='random')
 parser.add_argument('--multi_click', action='store_true', default=False)
 parser.add_argument('--model_type', type=str, default='vit_b_ori')
-parser.add_argument('--checkpoint', type=str, default='./work_dir/SAM/sam_vit_b.pth')
+parser.add_argument('--checkpoint', type=str, default='ckpt/sam_med3d.pth')
 parser.add_argument('--device', type=str, default='cuda')
-parser.add_argument('--work_dir', type=str, default='./work_dir')
+parser.add_argument('--work_dir', type=str, default='work_dir')
 
 # train
 parser.add_argument('--num_workers', type=int, default=24)
 parser.add_argument('--gpu_ids', type=int, nargs='+', default=[0,1])
 parser.add_argument('--multi_gpu', action='store_true', default=False)
 parser.add_argument('--resume', action='store_true', default=False)
+parser.add_argument('--allow_partial_weight', action='store_true', default=False)
 
 # lr_scheduler
 parser.add_argument('--lr_scheduler', type=str, default='multisteplr')
@@ -47,7 +48,7 @@ parser.add_argument('--step_size', type=list, default=[120, 180])
 parser.add_argument('--gamma', type=float, default=0.1)
 parser.add_argument('--num_epochs', type=int, default=200)
 parser.add_argument('--img_size', type=int, default=128)
-parser.add_argument('--batch_size', type=int, default=10)
+parser.add_argument('--batch_size', type=int, default=12)
 parser.add_argument('--accumulation_steps', type=int, default=20)
 parser.add_argument('--lr', type=float, default=8e-4)
 parser.add_argument('--weight_decay', type=float, default=0.1)
@@ -113,7 +114,11 @@ class BaseTrainer:
         self.set_loss_fn()
         self.set_optimizer()
         self.set_lr_scheduler()
-        self.init_checkpoint(join(self.args.work_dir, self.args.task_name, 'sam_model_latest.pth'))
+        if(args.resume):
+            self.init_checkpoint(join(self.args.work_dir, self.args.task_name, 'sam_model_latest.pth'))
+        else:
+            self.init_checkpoint(self.args.checkpoint)
+
         self.norm_transform = tio.ZNormalization(masking_method=lambda x: x > 0)
         
     def set_loss_fn(self):
@@ -155,10 +160,16 @@ class BaseTrainer:
                 last_ckpt = torch.load(ckp_path, map_location=self.args.device)
         
         if last_ckpt:
-            if self.args.multi_gpu:
-                self.model.module.load_state_dict(last_ckpt['model_state_dict'])
+            if(self.args.allow_partial_weight):
+                if self.args.multi_gpu:
+                    self.model.module.load_state_dict(last_ckpt['model_state_dict'], strict=False)
+                else:
+                    self.model.load_state_dict(last_ckpt['model_state_dict'], strict=False)
             else:
-                self.model.load_state_dict(last_ckpt['model_state_dict'])
+                if self.args.multi_gpu:
+                    self.model.module.load_state_dict(last_ckpt['model_state_dict'])
+                else:
+                    self.model.load_state_dict(last_ckpt['model_state_dict'])
             if not self.args.resume:
                 self.start_epoch = 0 
             else:
@@ -265,6 +276,7 @@ class BaseTrainer:
     def train_epoch(self, epoch, num_clicks):
         epoch_loss = 0
         epoch_iou = 0
+        epoch_dice = 0
         self.model.train()
         if self.args.multi_gpu:
             sam_model = self.model.module
@@ -279,7 +291,6 @@ class BaseTrainer:
 
         self.optimizer.zero_grad()
         step_loss = 0
-        epoch_dice = 0
         for step, (image3D, gt3D) in enumerate(tbar):
 
             my_context = self.model.no_sync if self.args.rank != -1 and step % self.args.accumulation_steps != 0 else nullcontext
@@ -302,8 +313,7 @@ class BaseTrainer:
                     prev_masks, loss = self.interaction(sam_model, image_embedding, gt3D, num_clicks=11)                
 
                 epoch_loss += loss.item()
-                epoch_dice += self.get_dice_score(prev_masks,gt3D) 
-                
+
                 cur_loss = loss.item()
 
                 loss /= self.args.accumulation_steps
@@ -335,8 +345,7 @@ class BaseTrainer:
                     if print_loss < self.step_best_loss:
                         self.step_best_loss = print_loss
             
-        epoch_loss /= step+1
-        epoch_dice /= step+1
+        epoch_loss /= step
 
         return epoch_loss, epoch_iou, epoch_dice, pred_list
 
@@ -406,7 +415,7 @@ class BaseTrainer:
                     )
 
                 self.plot_result(self.losses, 'Dice + Cross Entropy Loss', 'Loss')
-                # self.plot_result(self.dices, 'Dice', 'Dice')
+                self.plot_result(self.dices, 'Dice', 'Dice')
         logger.info('=====================================================================')
         logger.info(f'Best loss: {self.best_loss}')
         logger.info(f'Best dice: {self.best_dice}')
