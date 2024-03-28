@@ -320,7 +320,7 @@ def window_unpartition3D(
     D, H, W = dhw
     B = windows.shape[0] // (Dp * Hp * Wp // window_size // window_size // window_size)
     x = windows.view(B, Dp // window_size, Hp // window_size, Wp // window_size, window_size, window_size, window_size, -1)
-    x = x.permute(0, 1, 4, 2, 5, 3, 6, 7).contiguous().view(B, Hp, Wp, Dp, -1)
+    x = x.permute(0, 1, 4, 2, 5, 3, 6, 7).contiguous().view(B, Dp, Hp, Wp, -1)
 
     if Hp > H or Wp > W or Dp > D:
         x = x[:, :D, :H, :W, :].contiguous()
