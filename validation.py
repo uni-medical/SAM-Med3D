@@ -25,6 +25,7 @@ parser.add_argument('-tdp', '--test_data_path', type=str, default='./data/valida
 parser.add_argument('-vp', '--vis_path', type=str, default='./visualization')
 parser.add_argument('-cp', '--checkpoint_path', type=str, default='./ckpt/sam_med3d.pth')
 parser.add_argument('--save_name', type=str, default='union_out_dice.py')
+parser.add_argument('--skip_existing_pred', action='store_true', default=False)
 
 parser.add_argument('--image_size', type=int, default=256)
 parser.add_argument('--crop_size', type=int, default=128)
@@ -344,7 +345,7 @@ if __name__ == "__main__":
         dataset = os.path.basename(os.path.dirname(os.path.dirname(img_name[0])))
         vis_root = os.path.join(os.path.dirname(__file__), args.vis_path, modality, dataset)
         pred_path = os.path.join(vis_root, os.path.basename(img_name[0]).replace(".nii.gz", f"_pred{args.num_clicks-1}.nii.gz"))
-        if(os.path.exists(pred_path)):
+        if(args.skip_existing_pred and os.path.exists(pred_path)):
             iou_list, dice_list = [], []
             for iter in range(args.num_clicks):
                 curr_pred_path = os.path.join(vis_root, os.path.basename(img_name[0]).replace(".nii.gz", f"_pred{iter}.nii.gz"))

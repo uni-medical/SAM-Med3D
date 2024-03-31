@@ -20,7 +20,7 @@ import json
 import pickle
 from utils.click_method import get_next_click3D_torch_ritm, get_next_click3D_torch_2
 from utils.data_loader import Dataset_Union_ALL_Val
-
+from itertools import product
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-tdp', '--test_data_path', type=str, default='./data/validation')
@@ -28,7 +28,7 @@ parser.add_argument('-cp', '--checkpoint_path', type=str, default='./ckpt/sam_me
 parser.add_argument('--output_dir', type=str, default='./visualization')
 parser.add_argument('--task_name', type=str, default='test_amos')
 parser.add_argument('--skip_existing_pred', action='store_true', default=False)
-parser.add_argument('--only_for_validation', action='store_true', default=False)
+parser.add_argument('--sliding_window', action='store_true', default=False)
 
 parser.add_argument('--image_size', type=int, default=256)
 parser.add_argument('--crop_size', type=int, default=128)
@@ -287,43 +287,91 @@ def finetune_model_predict3D(img3D, gt3D, sam_model_tune, device='cuda', click_m
 
     return pred_list, click_points, click_labels
 
-def crop_and_pad_with_sliding_window(img3D, gt3D, crop_transform):
+
+def pad_and_crop_with_sliding_window(img3D, gt3D, crop_transform, offset_mode="center"):
     subject = tio.Subject(
         image = tio.ScalarImage(tensor=img3D.squeeze(0)),
         label = tio.LabelMap(tensor=gt3D.squeeze(0)),
     )
     padding_params, cropping_params = crop_transform.compute_crop_or_pad(subject)
-    roi_shape = crop_transform.target_shape
-    # cropping_params: (x_start, x_max-x_end, y_start, ...)
+    # cropping_params: (x_start, x_max-(x_start+roi_size), y_start, ...)
     # padding_params: (x_left_pad, x_right_pad, y_left_pad, ...)
-    pos3D_roi = dict(
-        padding_params=padding_params, cropping_params=cropping_params, 
-        ori_roi=(
-            cropping_params[0]+padding_params[0], cropping_params[0]+roi_shape[0]-padding_params[1],
-            cropping_params[2]+padding_params[2], cropping_params[2]+roi_shape[1]-padding_params[3],
-            cropping_params[4]+padding_params[4], cropping_params[4]+roi_shape[2]-padding_params[5],
-        ),
-        pred_roi=(
-            padding_params[0], roi_shape[0]-padding_params[1],
-            padding_params[2], roi_shape[1]-padding_params[3],
-            padding_params[4], roi_shape[2]-padding_params[5],
-        ))
-    subject_roi = crop_transform(subject)
-    img3D_roi, gt3D_roi = subject_roi.image.data.clone().detach().unsqueeze(1), subject_roi.label.data.clone().detach().unsqueeze(1)
-    return [(img3D_roi, gt3D_roi, pos3D_roi)]
+    if(cropping_params is None): cropping_params = (0,0,0,0,0,0)
+    if(padding_params is None): padding_params = (0,0,0,0,0,0)
+    roi_shape = crop_transform.target_shape
+    vol_bound = (0, img3D.shape[2], 0, img3D.shape[3], 0, img3D.shape[4])
+    center_oob_ori_roi=(
+        cropping_params[0]-padding_params[0], cropping_params[0]+roi_shape[0]-padding_params[0],
+        cropping_params[2]-padding_params[2], cropping_params[2]+roi_shape[1]-padding_params[2],
+        cropping_params[4]-padding_params[4], cropping_params[4]+roi_shape[2]-padding_params[4],
+    )
+    window_list = []
+    offset_dict = {
+        "rounded": list(product((-32,+32,0), repeat=3)),
+        "center": [(0,0,0)],
+    }
+    for offset in offset_dict[offset_mode]:
+        # get the position in original volume~(allow out-of-bound) for current offset
+        oob_ori_roi = (
+            center_oob_ori_roi[0]+offset[0], center_oob_ori_roi[1]+offset[0],
+            center_oob_ori_roi[2]+offset[1], center_oob_ori_roi[3]+offset[1],
+            center_oob_ori_roi[4]+offset[2], center_oob_ori_roi[5]+offset[2],
+        )
+        # get corresponing padding params based on `vol_bound`
+        padding_params = [0 for i in range(6)]
+        for idx, (ori_pos, bound) in enumerate(zip(oob_ori_roi, vol_bound)):
+            pad_val = 0
+            if(idx%2==0 and ori_pos<bound): # left bound
+                pad_val = bound-ori_pos
+            if(idx%2==1 and ori_pos>bound):
+                pad_val = ori_pos-bound
+            padding_params[idx] = pad_val
+        # get corresponding crop params after padding
+        cropping_params = (
+            oob_ori_roi[0]+padding_params[0], vol_bound[1]-oob_ori_roi[1]+padding_params[1],
+            oob_ori_roi[2]+padding_params[2], vol_bound[3]-oob_ori_roi[3]+padding_params[3],
+            oob_ori_roi[4]+padding_params[4], vol_bound[5]-oob_ori_roi[5]+padding_params[5],
+        )
+        # pad and crop for the original subject
+        pad_and_crop = tio.Compose([
+            tio.Pad(padding_params, padding_mode=crop_transform.padding_mode),
+            tio.Crop(cropping_params),
+        ])
+        subject_roi = pad_and_crop(subject)  
+        img3D_roi, gt3D_roi = subject_roi.image.data.clone().detach().unsqueeze(1), subject_roi.label.data.clone().detach().unsqueeze(1)
 
-    import pdb; pdb.set_trace()
-    if padding_params is not None:
-        pad = Pad(padding_params, **padding_kwargs)
-        subject = pad(subject)  
-    if cropping_params is not None:
-        crop = Crop(cropping_params)
-        subject = crop(subject)  
-    return img3D_roi, gt3D_roi
+        # collect all position information, and set correct roi for sliding-windows in 
+        # todo: get correct roi window of half because of the sliding 
+        windows_clip = [0 for i in range(6)]
+        for i in range(3):
+            if(offset[i]<0):
+                windows_clip[2*i] = 0
+                windows_clip[2*i+1] = -(roi_shape[i]+offset[i])
+            elif(offset[i]>0):
+                windows_clip[2*i] = roi_shape[i]-offset[i]
+                windows_clip[2*i+1] = 0
+        pos3D_roi = dict(
+            padding_params=padding_params, cropping_params=cropping_params, 
+            ori_roi=(
+                padding_params[0]+cropping_params[0]+windows_clip[0], cropping_params[0]+roi_shape[0]-padding_params[1]+windows_clip[1],
+                padding_params[2]+cropping_params[2]+windows_clip[2], cropping_params[2]+roi_shape[1]-padding_params[3]+windows_clip[3],
+                padding_params[4]+cropping_params[4]+windows_clip[4], cropping_params[4]+roi_shape[2]-padding_params[5]+windows_clip[5],
+            ),
+            pred_roi=(
+                padding_params[0]+windows_clip[0], roi_shape[0]-padding_params[1]+windows_clip[1],
+                padding_params[2]+windows_clip[2], roi_shape[1]-padding_params[3]+windows_clip[3],
+                padding_params[4]+windows_clip[4], roi_shape[2]-padding_params[5]+windows_clip[5],
+            ))
+        pred_roi = pos3D_roi["pred_roi"]
+        if((gt3D_roi[pred_roi[0]:pred_roi[1],pred_roi[2]:pred_roi[3],pred_roi[4]:pred_roi[5]]==0).all()):
+            #print("skip empty window with offset", offset)
+            continue
+
+        window_list.append((img3D_roi, gt3D_roi, pos3D_roi))
+    return window_list
 
 def save_numpy_to_nifti(in_arr: np.array, out_path, meta_info):
-    # torchio use `transpose(3, 0, 1, 2)` in `sitk_to_nib`
-    # turn 1xHxWxD -> Dx1xHxW
+    # torchio turn 1xHxWxD -> DxWxH
     # so we need to squeeze and transpose back to HxWxD
     ori_arr = np.transpose(in_arr.squeeze(), (2, 1, 0))
     out = sitk.GetImageFromArray(ori_arr)
@@ -405,7 +453,8 @@ if __name__ == "__main__":
         else: 
             image3D_full, gt3D_full = image3D, gt3D
             pred3D_full_dict  = {click_idx:torch.zeros_like(gt3D_full).numpy() for click_idx in range(args.num_clicks)}
-            sliding_window_list = crop_and_pad_with_sliding_window(image3D_full, gt3D_full, crop_transform)
+            offset_mode = "center" if(not args.sliding_window) else "rounded"
+            sliding_window_list = pad_and_crop_with_sliding_window(image3D_full, gt3D_full, crop_transform, offset_mode=offset_mode)
             for (image3D, gt3D, pos3D) in sliding_window_list:
                 seg_mask_list, points, labels = finetune_model_predict3D(
                     image3D, gt3D, sam_model_tune, device=device, 
@@ -416,15 +465,19 @@ if __name__ == "__main__":
                     seg_mask_roi = seg_mask[..., pred_roi[0]:pred_roi[1], pred_roi[2]:pred_roi[3], pred_roi[4]:pred_roi[5]]
                     pred3D_full_dict[idx][..., ori_roi[0]:ori_roi[1], ori_roi[2]:ori_roi[3], ori_roi[4]:ori_roi[5]] = seg_mask_roi
 
-                # os.makedirs(vis_root, exist_ok=True)
-                # points = [p.cpu().numpy() for p in points]
-                # labels = [l.cpu().numpy() for l in labels]
-                # pt_info = dict(points=points, labels=labels)
-                # print("save to", osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", "_pred.nii.gz")))
-                # pt_path=osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", "_pt.pkl"))
-                # pickle.dump(pt_info, open(pt_path, "wb"))
-                    
-            save_numpy_to_nifti(image3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_img.nii.gz")), meta_info)
+            padding_params = sliding_window_list[-1][-1]["padding_params"]
+            point_offset = np.array([padding_params[0], padding_params[2], padding_params[4]])
+            points = [p.cpu().numpy()+point_offset for p in points]
+            labels = [l.cpu().numpy() for l in labels]
+
+            pt_info = dict(points=points, labels=labels)
+            print("save to", osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", "_pred.nii.gz")))
+            pt_path=osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", "_pt.pkl"))
+            pickle.dump(pt_info, open(pt_path, "wb"))
+                
+
+            os.makedirs(vis_root, exist_ok=True)
+            # save_numpy_to_nifti(image3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_img.nii.gz")), meta_info)
             save_numpy_to_nifti(gt3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_gt.nii.gz")), meta_info)
             for idx, pred3D_full in pred3D_full_dict.items():
                 save_numpy_to_nifti(pred3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_pred{idx}.nii.gz")), meta_info)
