@@ -114,9 +114,9 @@ The key options are listed below:
 
 **Hint**: Use the `--checkpoint` to set the pre-trained weight path, the model will be trained from scratch if no ckpt in the path is found!
 
-### Evaluation
+### Evaluation & Inference
 Prepare your own dataset and refer to the samples in `data/validation` to replace them according to your specific scenario. 
-Then you can simply run `bash val.sh` to test SAM-Med3D on your data. 
+Then you can simply run `bash val.sh` to **quickly validate** SAM-Med3D on your data. Or you can use `bash infer.sh` to **generate full-volume results** for your application.
 Make sure the masks are processed into the one-hot format (have only two values: the main image (foreground) and the background).
 
 ```
@@ -132,6 +132,22 @@ python validation.py --seed 2023\
 - tdp: test data path, where your data is placed
 - nc: number of clicks of prompt points
 - save_name: filename to save evaluation results 
+- (optional) skip_existing_pred: skip and not predict if output file is found existing
+
+**Sliding-window Inference (experimental)**: To extend the application scenario of SAM-Med3D and support more choices for full-volume inference. We provide the sliding-window mode here within `inference.py`. 
+```
+python inference.py --seed 2024\
+ -cp ./ckpt/sam_med3d_turbo.pth \
+ -tdp ./data/medical_preprocessed -nc 1 \
+ --output_dir ./results  --task_name test_amos_move \
+ #--sliding_window
+ #--save_image_and_gt
+```
+- cp: checkpoint path
+- tdp: test data path, where your data is placed
+- output_dir&task_name: all your output will be saved to `<output_dir>/<task_name>`
+- (optional) sliding_window: enable the sliding-window mode. model will infer 27 patches with improved accuracy and slower responce.
+- (optional) save_image_and_gt: enable saving the full-volume image and ground-truth into `output_dir`, plz ensure your disk is okay when you turn on this
 
 For validation of SAM and SAM-Med2D on 3D volumetric data, you can refer to `scripts/val_sam.sh` and `scripts/val_med2d.sh` for details.
 
