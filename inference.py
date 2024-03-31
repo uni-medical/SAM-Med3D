@@ -143,7 +143,7 @@ def random_point_sampling(mask, get_point = 1):
         mask = mask.numpy()
     fg_coords = np.argwhere(mask == 1)[:,::-1]
     bg_coords = np.argwhere(mask == 0)[:,::-1]
-
+    
     fg_size = len(fg_coords)
     bg_size = len(bg_coords)
 
@@ -466,22 +466,26 @@ if __name__ == "__main__":
                     pred3D_full_dict[idx][..., ori_roi[0]:ori_roi[1], ori_roi[2]:ori_roi[3], ori_roi[4]:ori_roi[5]] = seg_mask_roi
 
             padding_params = sliding_window_list[-1][-1]["padding_params"]
-            point_offset = np.array([padding_params[0], padding_params[2], padding_params[4]])
+            cropping_params = sliding_window_list[-1][-1]["cropping_params"]
+            # print(padding_params, cropping_params)
+            point_offset = np.array([cropping_params[0]-padding_params[0], cropping_params[2]-padding_params[2], cropping_params[4]-padding_params[4]])
             points = [p.cpu().numpy()+point_offset for p in points]
             labels = [l.cpu().numpy() for l in labels]
-
             pt_info = dict(points=points, labels=labels)
-            print("save to", osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", "_pred.nii.gz")))
+            # print("save to", osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", "_pred.nii.gz")))
             pt_path=osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", "_pt.pkl"))
-            pickle.dump(pt_info, open(pt_path, "wb"))
-                
+            pickle.dump(pt_info, open(pt_path, "wb"))              
 
             os.makedirs(vis_root, exist_ok=True)
             # save_numpy_to_nifti(image3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_img.nii.gz")), meta_info)
             save_numpy_to_nifti(gt3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_gt.nii.gz")), meta_info)
             for idx, pred3D_full in pred3D_full_dict.items():
                 save_numpy_to_nifti(pred3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_pred{idx}.nii.gz")), meta_info)
-        
+                radius = 2
+                for pt in points[:idx+1]:
+                    pred3D_full[..., pt[0,0,0]-radius:pt[0,0,0]+radius, pt[0,0,1]-radius:pt[0,0,1]+radius, pt[0,0,2]-radius:pt[0,0,2]+radius] = 10
+                save_numpy_to_nifti(pred3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_pred{idx}_wPt.nii.gz")), meta_info)
+                
         ''' metric computation '''
         for click_idx in range(args.num_clicks):
             reorient_tensor = lambda in_arr : np.transpose(in_arr.squeeze().detach().cpu().numpy(), (2, 1, 0))
