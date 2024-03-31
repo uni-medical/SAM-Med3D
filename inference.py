@@ -28,6 +28,7 @@ parser.add_argument('-cp', '--checkpoint_path', type=str, default='./ckpt/sam_me
 parser.add_argument('--output_dir', type=str, default='./visualization')
 parser.add_argument('--task_name', type=str, default='test_amos')
 parser.add_argument('--skip_existing_pred', action='store_true', default=False)
+parser.add_argument('--save_image_and_gt', action='store_true', default=False)
 parser.add_argument('--sliding_window', action='store_true', default=False)
 
 parser.add_argument('--image_size', type=int, default=256)
@@ -465,6 +466,7 @@ if __name__ == "__main__":
                     seg_mask_roi = seg_mask[..., pred_roi[0]:pred_roi[1], pred_roi[2]:pred_roi[3], pred_roi[4]:pred_roi[5]]
                     pred3D_full_dict[idx][..., ori_roi[0]:ori_roi[1], ori_roi[2]:ori_roi[3], ori_roi[4]:ori_roi[5]] = seg_mask_roi
 
+            os.makedirs(vis_root, exist_ok=True)
             padding_params = sliding_window_list[-1][-1]["padding_params"]
             cropping_params = sliding_window_list[-1][-1]["cropping_params"]
             # print(padding_params, cropping_params)
@@ -476,9 +478,9 @@ if __name__ == "__main__":
             pt_path=osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", "_pt.pkl"))
             pickle.dump(pt_info, open(pt_path, "wb"))              
 
-            os.makedirs(vis_root, exist_ok=True)
-            # save_numpy_to_nifti(image3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_img.nii.gz")), meta_info)
-            save_numpy_to_nifti(gt3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_gt.nii.gz")), meta_info)
+            if(args.save_image_and_gt):
+                save_numpy_to_nifti(image3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_img.nii.gz")), meta_info)
+                save_numpy_to_nifti(gt3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_gt.nii.gz")), meta_info)
             for idx, pred3D_full in pred3D_full_dict.items():
                 save_numpy_to_nifti(pred3D_full, osp.join(vis_root, osp.basename(img_name).replace(".nii.gz", f"_pred{idx}.nii.gz")), meta_info)
                 radius = 2
