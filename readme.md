@@ -117,7 +117,7 @@ The key options are listed below:
 ### Evaluation & Inference
 Prepare your own dataset and refer to the samples in `data/validation` to replace them according to your specific scenario. 
 Then you can simply run `bash val.sh` to **quickly validate** SAM-Med3D on your data. Or you can use `bash infer.sh` to **generate full-volume results** for your application.
-Make sure the masks are processed into the one-hot format (have only two values: the main image (foreground) and the background).
+Make sure the masks are processed into the one-hot format (have only two values: the main image (foreground) and the background). We highly recommend using the spacing of `1.5mm` for the best experience.
 
 ```
 python validation.py --seed 2023\
