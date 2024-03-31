@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import torchio as tio
+from torchio.data.io import sitk_to_nib
 import torch
 import numpy as np
 import os
@@ -12,7 +13,7 @@ from prefetch_generator import BackgroundGenerator
 class Dataset_Union_ALL(Dataset): 
     def __init__(self, paths, mode='train', data_type='Tr', image_size=128, 
                  transform=None, threshold=500,
-                 split_num=1, split_idx=0, pcc=False):
+                 split_num=1, split_idx=0, pcc=False, get_all_meta_info=False):
         self.paths = paths
         self.data_type = data_type
         self.split_num=split_num
@@ -24,6 +25,7 @@ class Dataset_Union_ALL(Dataset):
         self.threshold = threshold
         self.mode = mode
         self.pcc = pcc
+        self.get_all_meta_info = get_all_meta_info
     
     def __len__(self):
         return len(self.label_paths)
@@ -38,9 +40,12 @@ class Dataset_Union_ALL(Dataset):
         if sitk_image.GetDirection() != sitk_label.GetDirection():
             sitk_image.SetDirection(sitk_label.GetDirection())
 
+        sitk_image_arr, _ = sitk_to_nib(sitk_image)
+        sitk_label_arr, _ = sitk_to_nib(sitk_label)
+
         subject = tio.Subject(
-            image = tio.ScalarImage.from_sitk(sitk_image),
-            label = tio.LabelMap.from_sitk(sitk_label),
+            image = tio.ScalarImage(tensor=sitk_image_arr),
+            label = tio.LabelMap(tensor=sitk_label_arr),
         )
 
         if '/ct_' in self.image_paths[index]:
@@ -73,6 +78,14 @@ class Dataset_Union_ALL(Dataset):
         
         if self.mode == "train" and self.data_type == 'Tr':
             return subject.image.data.clone().detach(), subject.label.data.clone().detach()
+        elif self.get_all_meta_info:
+            meta_info = {
+                "image_path": self.image_paths[index],
+                "origin": sitk_label.GetOrigin(),
+                "direction": sitk_label.GetDirection(),
+                "spacing": sitk_label.GetSpacing(),
+            }
+            return subject.image.data.clone().detach(), subject.label.data.clone().detach(), meta_info   
         else:
             return subject.image.data.clone().detach(), subject.label.data.clone().detach(), self.image_paths[index]   
  
