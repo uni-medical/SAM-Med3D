@@ -76,15 +76,11 @@ def compute_iou(pred_mask, gt_semantic_seg):
     iou = np.sum(in_mask) / np.sum(out_mask)
     return iou
 
-def compute_dice(mask_gt, mask_pred):
-    """Compute soerensen-dice coefficient.
-    Returns:
-    the dice coeffcient as float. If both masks are empty, the result is NaN
-    """
+def compute_dice(mask_gt, mask_pred, dtype=np.uint8):
     volume_sum = mask_gt.sum() + mask_pred.sum()
     if volume_sum == 0:
         return np.NaN
-    volume_intersect = (mask_gt & mask_pred).sum()
+    volume_intersect = (mask_gt.astype(dtype) & mask_pred.astype(dtype)).sum()
     return 2*volume_intersect / volume_sum
 
 def postprocess_masks(low_res_masks, image_size, original_size):
@@ -354,9 +350,9 @@ def pad_and_crop_with_sliding_window(img3D, gt3D, crop_transform, offset_mode="c
         pos3D_roi = dict(
             padding_params=padding_params, cropping_params=cropping_params, 
             ori_roi=(
-                padding_params[0]+cropping_params[0]+windows_clip[0], cropping_params[0]+roi_shape[0]-padding_params[1]+windows_clip[1],
-                padding_params[2]+cropping_params[2]+windows_clip[2], cropping_params[2]+roi_shape[1]-padding_params[3]+windows_clip[3],
-                padding_params[4]+cropping_params[4]+windows_clip[4], cropping_params[4]+roi_shape[2]-padding_params[5]+windows_clip[5],
+                cropping_params[0]+windows_clip[0], cropping_params[0]+roi_shape[0]-padding_params[0]-padding_params[1]+windows_clip[1],
+                cropping_params[2]+windows_clip[2], cropping_params[2]+roi_shape[1]-padding_params[2]-padding_params[3]+windows_clip[3],
+                cropping_params[4]+windows_clip[4], cropping_params[4]+roi_shape[2]-padding_params[4]-padding_params[5]+windows_clip[5],
             ),
             pred_roi=(
                 padding_params[0]+windows_clip[0], roi_shape[0]-padding_params[1]+windows_clip[1],
@@ -364,6 +360,7 @@ def pad_and_crop_with_sliding_window(img3D, gt3D, crop_transform, offset_mode="c
                 padding_params[4]+windows_clip[4], roi_shape[2]-padding_params[5]+windows_clip[5],
             ))
         pred_roi = pos3D_roi["pred_roi"]
+        print("pos3D_roi:", pos3D_roi)
         if((gt3D_roi[pred_roi[0]:pred_roi[1],pred_roi[2]:pred_roi[3],pred_roi[4]:pred_roi[5]]==0).all()):
             #print("skip empty window with offset", offset)
             continue
