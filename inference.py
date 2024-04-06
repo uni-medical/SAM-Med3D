@@ -360,10 +360,10 @@ def pad_and_crop_with_sliding_window(img3D, gt3D, crop_transform, offset_mode="c
                 padding_params[4]+windows_clip[4], roi_shape[2]-padding_params[5]+windows_clip[5],
             ))
         pred_roi = pos3D_roi["pred_roi"]
-        print("pos3D_roi:", pos3D_roi)
-        if((gt3D_roi[pred_roi[0]:pred_roi[1],pred_roi[2]:pred_roi[3],pred_roi[4]:pred_roi[5]]==0).all()):
+        
+        #if((gt3D_roi[pred_roi[0]:pred_roi[1],pred_roi[2]:pred_roi[3],pred_roi[4]:pred_roi[5]]==0).all()):
             #print("skip empty window with offset", offset)
-            continue
+        #    continue
 
         window_list.append((img3D_roi, gt3D_roi, pos3D_roi))
     return window_list
