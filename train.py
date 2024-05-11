@@ -276,7 +276,6 @@ class BaseTrainer:
     def train_epoch(self, epoch, num_clicks):
         epoch_loss = 0
         epoch_iou = 0
-        epoch_dice = 0
         self.model.train()
         if self.args.multi_gpu:
             sam_model = self.model.module
@@ -291,6 +290,7 @@ class BaseTrainer:
 
         self.optimizer.zero_grad()
         step_loss = 0
+        epoch_dice = 0
         for step, (image3D, gt3D) in enumerate(tbar):
 
             my_context = self.model.no_sync if self.args.rank != -1 and step % self.args.accumulation_steps != 0 else nullcontext
@@ -313,9 +313,9 @@ class BaseTrainer:
                     prev_masks, loss = self.interaction(sam_model, image_embedding, gt3D, num_clicks=11)                
 
                 epoch_loss += loss.item()
-
+                epoch_dice += self.get_dice_score(prev_masks,gt3D) 
                 cur_loss = loss.item()
-
+                
                 loss /= self.args.accumulation_steps
                 
                 self.scaler.scale(loss).backward()    
@@ -345,7 +345,8 @@ class BaseTrainer:
                     if print_loss < self.step_best_loss:
                         self.step_best_loss = print_loss
             
-        epoch_loss /= step
+        epoch_loss /= step+1
+        epoch_dice /= step+1
 
         return epoch_loss, epoch_iou, epoch_dice, pred_list
 
