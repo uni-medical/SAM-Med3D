@@ -5,6 +5,18 @@ import torch.nn.functional as F
 
 
 def get_next_click3D_torch_no_gt(prev_seg, img3D, threshold=170):
+    """Selects prompt clicks from thresholded image (img3D) based on the previous segmentation (prev_seg).
+
+    Args:
+        prev_seg (torch.tensor): segmentation masks from previous iteration
+        img3D (torch.tensor): input images
+        threshold (int, optional): threshold value to apply to image for selecting point click. Defaults to 170.
+
+    Returns:
+        batch_points (list of torch.tensor): list of points to click
+        batch_labels (list of torch.tensor): list of labels corresponding to the points
+        NOTE: In this case, the labels are based on the thresholded image and not the ground truth.
+    """
 
     mask_threshold = 0.5
     batch_points = []
@@ -47,6 +59,16 @@ def get_next_click3D_torch_no_gt(prev_seg, img3D, threshold=170):
 
 
 def get_next_click3D_torch_no_gt_naive(prev_seg):
+    """Selects prompt clicks from the area outside predicted masks based on previous segmentation (prev_seg). 
+
+    Args:
+        prev_seg (torch.tensor): segmentation masks from previous iteration
+
+    Returns:
+        batch_points (list of torch.tensor): list of points to click
+        batch_labels (list of torch.tensor): list of labels corresponding to the points
+        NOTE: In this case, the labels are based on the predicted masks and not the ground truth.
+    """
     mask_threshold = 0.5
 
     batch_points = []
@@ -55,11 +77,11 @@ def get_next_click3D_torch_no_gt_naive(prev_seg):
     pred_masks = prev_seg > mask_threshold
     uncertain_masks = torch.logical_xor(
         pred_masks, pred_masks
-    )  # Initialize with all False
+    )  # init with all False
 
     for i in range(prev_seg.shape[0]):
         uncertain_region = torch.logical_or(uncertain_masks[i, 0], pred_masks[i, 0])
-        points = torch.argwhere(uncertain_region)
+        points = torch.argwhere(uncertain_region) # select outside of pred mask
 
         if len(points) > 0:
             point = points[np.random.randint(len(points))]
