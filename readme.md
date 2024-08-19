@@ -140,14 +140,13 @@ python inference.py --seed 2024\
  -cp ./ckpt/sam_med3d_turbo.pth \
  -tdp ./data/medical_preprocessed -nc 1 \
  --output_dir ./results  --task_name test_amos_move \
- #--sliding_window
- #--save_image_and_gt
+ --sliding_window --save_image_and_gt
 ```
 - cp: checkpoint path
 - tdp: test data path, where your data is placed
 - output_dir&task_name: all your output will be saved to `<output_dir>/<task_name>`
 - (optional) sliding_window: enable the sliding-window mode. model will infer 27 patches with improved accuracy and slower responce.
-- (optional) save_image_and_gt: enable saving the full-volume image and ground-truth into `output_dir`, plz ensure your disk is okay when you turn on this
+- (optional) save_image_and_gt: enable saving the full-volume image and ground-truth into `output_dir`, plz ensure your disk has enough free space when you turn on this
 
 For validation of SAM and SAM-Med2D on 3D volumetric data, you can refer to `scripts/val_sam.sh` and `scripts/val_med2d.sh` for details.
 
