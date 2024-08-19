@@ -1,18 +1,20 @@
 # SAM-Med3D \[[Paper](https://arxiv.org/abs/2310.15161)]
-
 <a src="https://img.shields.io/badge/cs.CV-2310.15161-b31b1b?logo=arxiv&logoColor=red" href="https://arxiv.org/abs/2310.15161"> 
 <img src="https://img.shields.io/badge/cs.CV-2310.15161-b31b1b?logo=arxiv&logoColor=red">
 <a src="https://img.shields.io/badge/WeChat-Group-green?logo=wechat" href="https://github.com/uni-medical/SAM-Med3D/tree/main?tab=readme-ov-file#-discussion-group"> <img src="https://img.shields.io/badge/WeChat-Group-green?logo=wechat">
 </a>
 
 
+Here is the official repo of "SAM-Med3D: Towards General-purpose Segmentation Models for Volumetric Medical Images".
+
 <div align="center">
   <img src="assets/motivation.png">
 </div>
 
 ## 🔥🌻📰 News 📰🌻🔥
-- **[New Checkpoints Release]** A newer version of finetuned SAM-Med3D named `SAM-Med3D-turbo` is released now. We fine-tuned it on 44 datasets ([list](https://github.com/uni-medical/SAM-Med3D/issues/2#issuecomment-1849002225)) to improve the performance. Hope this update can help you 🙂.
-- **[New Checkpoints Release]** Finetuned SAM-Med3D for organ/brain segmentation is released now! Hope you enjoy the enhanced performance for specific tasks 😉. Details are in [results](https://github.com/uni-medical/SAM-Med3D/blob/main/readme.md#-dice-on-different-anatomical-architecture-and-lesions) and [ckpt](https://github.com/uni-medical/SAM-Med3D#-checkpoint).
+- **[Paper]** SAM-Med3D is accepted as [ECCV BIC 2024 Oral](https://www.bioimagecomputing.com/program/selected-contributions/)
+- **[Model]** A newer version of finetuned SAM-Med3D named `SAM-Med3D-turbo` is released now. We fine-tuned it on 44 datasets ([list](https://github.com/uni-medical/SAM-Med3D/issues/2#issuecomment-1849002225)) to improve the performance. Hope this update can help you 🙂.
+- **[Model]** Finetuned SAM-Med3D for organ/brain segmentation is released now! Hope you enjoy the enhanced performance for specific tasks 😉. Details are in [results](https://github.com/uni-medical/SAM-Med3D/blob/main/readme.md#-dice-on-different-anatomical-architecture-and-lesions) and [ckpt](https://github.com/uni-medical/SAM-Med3D#-checkpoint).
 - **[Recommendation]** If you are interested in computer vision, 
 we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exciting projects like [SAM-Med2D](https://github.com/OpenGVLab/SAM-Med2D/tree/main)!
 
