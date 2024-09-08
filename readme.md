@@ -10,18 +10,62 @@ The official repo of "SAM-Med3D: Towards General-purpose Segmentation Models for
 </div>
 
 ## 🔥🌻📰 News 📰🌻🔥
+- **[Examples]** SAM-Med3D is now supported in [MedIM](https://github.com/uni-medical/MedIM), you can now get our model with one-line Python code. Our new example is in `medim_infer.py`.
 - **[Paper]** SAM-Med3D is accepted as [ECCV BIC 2024 Oral](https://www.bioimagecomputing.com/program/selected-contributions/)
 - **[Model]** A newer version of finetuned SAM-Med3D named `SAM-Med3D-turbo` is released now. We fine-tuned it on 44 datasets ([list](https://github.com/uni-medical/SAM-Med3D/issues/2#issuecomment-1849002225)) to improve the performance. Hope this update can help you 🙂.
 - **[Model]** Finetuned SAM-Med3D for organ/brain segmentation is released now! Hope you enjoy the enhanced performance for specific tasks 😉. Details are in [results](https://github.com/uni-medical/SAM-Med3D/blob/main/readme.md#-dice-on-different-anatomical-architecture-and-lesions) and [ckpt](https://github.com/uni-medical/SAM-Med3D#-checkpoint).
-- **[Recommendation]** If you are interested in computer vision, 
+- **[Repos]** If you are interested in computer vision, 
 we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exciting projects like [SAM-Med2D](https://github.com/OpenGVLab/SAM-Med2D/tree/main)!
 
 ## 🌟 Highlights
-- 📚 Curated the most extensive volumetric medical dataset to date for training, boasting 131K 3D masks and 247 categories.
+- 📚 Curated the most extensive volumetric medical dataset to date for training, boasting 143K 3D masks and 245 categories.
 - 🚤 Achieved efficient promptable segmentation, requiring 10 to 100 times fewer prompt points for satisfactory 3D outcomes.
-- 🏆 Conducted a thorough assessment of SAM-Med3D across 15 frequently used volumetric medical image segmentation datasets.
+- 🏆 Conducted a thorough assessment of SAM-Med3D across 16 frequently used volumetric medical image segmentation datasets.
 
 ## 🔨 Usage
+### Quick Start for SAM-Med3D inference
+> **Note:**
+> Currently, labels are required to generate prompt points for inference.
+
+First, set up your environment with the following commands:
+```
+conda create --name sammed3d python=3.10 
+conda activate sammed3d
+pip install light-the-torch && ltt install torch
+pip install torchio opencv-python-headless matplotlib prefetch_generator monai edt medim
+```
+Then, use `medim_infer.py` to test the inference:
+```
+python medim_infer.py
+```
+
+If you want to run inference on your own data, refer to `medim_infer.py` for more details. You can simply modify the paths in the script to use your own data. Here's the main logic:
+```
+  ''' 1. read and pre-process your input data '''
+  img_path = "./test_data/kidney_right/AMOS/imagesVal/amos_0013.nii.gz"
+  gt_path =  "./test_data/kidney_right/AMOS/labelsVal/amos_0013.nii.gz"
+  category_index = 3  # the index of your target category in the gt annotation
+  output_dir = "./test_data/kidney_right/AMOS/pred/"
+  roi_image, roi_label, meta_info = data_preprocess(img_path, gt_path, category_index=category_index)
+  
+  ''' 2. prepare the pre-trained model with local path or huggingface url '''
+  ckpt_path = "https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth"
+  # or you can use the local path like: ckpt_path = "./ckpt/sam_med3d_turbo.pth"
+  model = medim.create_model("SAM-Med3D",
+                              pretrained=True,
+                              checkpoint_path=ckpt_path)
+  
+  ''' 3. infer with the pre-trained SAM-Med3D model '''
+  roi_pred = sam_model_infer(model, roi_image, roi_gt=roi_label)
+
+  ''' 4. post-process and save the result '''
+  output_path = osp.join(output_dir, osp.basename(img_path).replace(".nii.gz", "_pred.nii.gz"))
+  data_postprocess(roi_pred, meta_info, output_path, img_path)
+
+  print("result saved to", output_path)
+```
+
+
 ### Training / Fine-tuning
 (we recommend fine-tuning with SAM-Med3D pre-trained weights from [link](https://github.com/uni-medical/SAM-Med3D#-checkpoint))
 
