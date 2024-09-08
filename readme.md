@@ -10,7 +10,7 @@ The official repo of "SAM-Med3D: Towards General-purpose Segmentation Models for
 </div>
 
 ## 🔥🌻📰 News 📰🌻🔥
-- **[Examples]** SAM-Med3D is now supported in [MedIM](https://github.com/uni-medical/MedIM), you can now get our model with one-line Python code. Our new example is in `medim_infer.py`.
+- **[Examples]** SAM-Med3D is now supported in [MedIM](https://github.com/uni-medical/MedIM), you can now get our model with one-line Python code. Our new example is in [`medim_infer.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_infer.py).
 - **[Paper]** SAM-Med3D is accepted as [ECCV BIC 2024 Oral](https://www.bioimagecomputing.com/program/selected-contributions/)
 - **[Model]** A newer version of finetuned SAM-Med3D named `SAM-Med3D-turbo` is released now. We fine-tuned it on 44 datasets ([list](https://github.com/uni-medical/SAM-Med3D/issues/2#issuecomment-1849002225)) to improve the performance. Hope this update can help you 🙂.
 - **[Model]** Finetuned SAM-Med3D for organ/brain segmentation is released now! Hope you enjoy the enhanced performance for specific tasks 😉. Details are in [results](https://github.com/uni-medical/SAM-Med3D/blob/main/readme.md#-dice-on-different-anatomical-architecture-and-lesions) and [ckpt](https://github.com/uni-medical/SAM-Med3D#-checkpoint).
@@ -34,12 +34,12 @@ conda activate sammed3d
 pip install light-the-torch && ltt install torch
 pip install torchio opencv-python-headless matplotlib prefetch_generator monai edt medim
 ```
-Then, use `medim_infer.py` to test the inference:
+Then, use [`medim_infer.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_infer.py) to test the inference:
 ```
 python medim_infer.py
 ```
 
-If you want to run inference on your own data, refer to `medim_infer.py` for more details. You can simply modify the paths in the script to use your own data. Here's the main logic:
+If you want to run inference on your own data, refer to [`medim_infer.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_infer.py) for more details. You can simply modify the paths in the script to use your own data. Here's the main logic:
 ```
   ''' 1. read and pre-process your input data '''
   img_path = "./test_data/kidney_right/AMOS/imagesVal/amos_0013.nii.gz"
