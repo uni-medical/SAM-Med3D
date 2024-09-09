@@ -74,7 +74,13 @@ To train the SAM-Med3D model on your own data, follow these steps:
 
 #### 0. **(Recommend) Prepare the Pre-trained Weights**
 
-Download the checkpoint from [ckpt section](https://github.com/uni-medical/SAM-Med3D#-checkpoint) and move the pth file into `SAM_Med3D/ckpt/` (We recommand to use `SAM-Med3D-turbo.pth`.).
+> Note: You can easily get PyTorch SAM-Med3D model with pre-trained weights from huggingface use `MedIM`.
+> ```
+> ckpt_path = "https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth"
+> model = medim.create_model("SAM-Med3D", pretrained=True, checkpoint_path=ckpt_path)
+> ```
+
+Download the checkpoint from [ckpt section](https://github.com/uni-medical/SAM-Med3D#-checkpoint) and move the pth file into `SAM_Med3D/ckpt/` (We recommand to use `SAM-Med3D-turbo.pth`).
 
 
 #### 1. Prepare Your Training Data (from nnU-Net-style dataset): 
