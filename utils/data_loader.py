@@ -90,12 +90,11 @@ class Dataset_Union_ALL(Dataset):
 
         if subject.label.data.sum() <= self.threshold:
             return self.__getitem__(np.random.randint(self.__len__()))
-
         if self.mode == "train" and self.data_type == "Tr":
-            return (
-                subject.image.data.clone().detach(),
-                subject.label.data.clone().detach(),
-            )
+            return {
+                "image": subject.image.data.clone().detach(),
+                "label": subject.label.data.clone().detach(),
+            }
         elif self.get_all_meta_info:
             meta_info = {
                 "image_path": self.image_paths[index],
@@ -103,17 +102,17 @@ class Dataset_Union_ALL(Dataset):
                 "direction": sitk_label.GetDirection(),
                 "spacing": sitk_label.GetSpacing(),
             }
-            return (
-                subject.image.data.clone().detach(),
-                subject.label.data.clone().detach(),
-                meta_info,
-            )
+            return {
+                "image": subject.image.data.clone().detach(),
+                "label": subject.label.data.clone().detach(),
+                "meta_info": meta_info
+            }
         else:
-            return (
-                subject.image.data.clone().detach(),
-                subject.label.data.clone().detach(),
-                self.image_paths[index],
-            )
+            return {
+                "image": subject.image.data.clone().detach(),
+                "label": subject.label.data.clone().detach(),
+                "path": self.image_paths[index],
+            }
 
     def _set_file_paths(self, paths):
         self.image_paths = []
@@ -244,7 +243,7 @@ class Dataset_Union_ALL_Infer(Dataset):
         self.image_paths = self.image_paths[self.split_idx :: self.split_num]
 
 
-class Union_Dataloader(DataLoader):
+class Union_Dataloader(tio.SubjectsLoader):
     def __iter__(self):
         return BackgroundGenerator(super().__iter__())
 
