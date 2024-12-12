@@ -1,4 +1,4 @@
-# SAM-Med3D \[[Paper](https://arxiv.org/abs/2310.15161)]
+# SAM-Med3D \[[Paper](https://arxiv.org/abs/2310.15161)] \[[Supplementary](https://github.com/uni-medical/SAM-Med3D/blob/main/paper/SAM_Med3D_ECCV_Supplementary.pdf)\]
 [![x](https://img.shields.io/badge/cs.CV-2310.15161-b31b1b?logo=arxiv&logoColor=red)](https://arxiv.org/abs/2310.15161)
 [![x](https://img.shields.io/badge/WeChat-Group-green?logo=wechat)](https://github.com/uni-medical/SAM-Med3D/tree/main?tab=readme-ov-file#-discussion-group)
 
