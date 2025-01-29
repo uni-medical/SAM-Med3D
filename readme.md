@@ -133,13 +133,18 @@ data/medical_preprocessed
 >       ├── ...
 > ```
 
-Then, modify the `utils/data_paths.py` according to your own data.
+Then, modify `img_datas` in `utils/data_paths.py` according to your own data.
 ```
 img_datas = [
 "data/train/adrenal/ct_WORD",
 "data/train/liver/ct_WORD",
 ...
 ]
+```
+or
+```
+PROJ_DIR = <YOUR PROJ DIR>
+img_datas = glob(os.path.join(PROJ_DIR, "data", "train", "*", "*"))
 ```
 
 
