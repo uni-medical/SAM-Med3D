@@ -88,6 +88,7 @@ def get_dataloaders(args):
         train_sampler = None
         shuffle = True
 
+    #train_dataloader = tio.SubjectsLoader(
     train_dataloader = Union_Dataloader(
         dataset=train_dataset,
         sampler=train_sampler,
@@ -291,8 +292,12 @@ class BaseTrainer:
         self.optimizer.zero_grad()
         step_loss = 0
         epoch_dice = 0
-        for step, (image3D, gt3D) in enumerate(tbar):
-
+        for step, data3D in enumerate(tbar):
+            try:
+                image3D, gt3D = data3D["image"], data3D["label"]
+            except Exception as e:
+                print(f"Error processing batch at step {step}: {e}")
+            #import pdb; pdb.set_trace()
             my_context = self.model.no_sync if self.args.rank != -1 and step % self.args.accumulation_steps != 0 else nullcontext
 
             with my_context():
@@ -302,7 +307,7 @@ class BaseTrainer:
                 
                 image3D = image3D.to(device)
                 gt3D = gt3D.to(device).type(torch.long)
-                with amp.autocast():
+                with torch.amp.autocast("cuda"):
                     image_embedding = sam_model.image_encoder(image3D)
 
                     self.click_points = []
@@ -363,7 +368,7 @@ class BaseTrainer:
 
 
     def train(self):
-        self.scaler = amp.GradScaler()
+        self.scaler = torch.amp.GradScaler("cuda")
         for epoch in range(self.start_epoch, self.args.num_epochs):
             print(f'Epoch: {epoch}/{self.args.num_epochs - 1}')
 
