@@ -246,9 +246,13 @@ def data_preprocess(img_path, gt_path, category_index):
 def data_postprocess(roi_pred, meta_info, output_path, ori_img_path):
     os.makedirs(osp.dirname(output_path), exist_ok=True)
     pred3D_full = np.zeros(meta_info["image_shape"])
+    padding_params = meta_info["padding_params"]
+    unpadded_pred = roi_pred[padding_params[0] : 128-padding_params[1],
+                             padding_params[2] : 128-padding_params[3],
+                             padding_params[4] : 128-padding_params[5]]
     ori_roi = meta_info["ori_roi"]
     pred3D_full[ori_roi[0]:ori_roi[1], ori_roi[2]:ori_roi[3],
-                ori_roi[4]:ori_roi[5]] = roi_pred
+                ori_roi[4]:ori_roi[5]] = unpadded_pred
 
     sitk_image = sitk.ReadImage(ori_img_path)
     ori_meta_info = {
