@@ -16,6 +16,9 @@ import os.path as osp
 import os
 from torchio.data.io import sitk_to_nib
 import SimpleITK as sitk
+from os.path import join
+from glob import glob
+from collections import defaultdict
 
 
 def random_sample_next_click(prev_mask, gt_mask):
@@ -66,8 +69,10 @@ def sam_model_infer(model,
     '''
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("using device", device)
+    # print("using device", device)
     model = model.to(device)
+    
+    # import pdb; pdb.set_trace()
 
     with torch.no_grad():
         input_tensor = roi_image.to(device)
@@ -83,6 +88,9 @@ def sam_model_infer(model,
                 prev_low_res_mask is not None) else torch.zeros(
                     1, 1, roi_image.shape[2] // 4, roi_image.shape[3] //
                     4, roi_image.shape[4] // 4)
+            prev_low_res_mask = F.interpolate(prev_low_res_mask,
+                                              size=(roi_image.shape[2] // 4, roi_image.shape[3] // 4, roi_image.shape[4] // 4),
+                                              mode='nearest').to(torch.float32)
             new_points_co, new_points_la = prompt_generator(
                 torch.zeros_like(roi_image)[0, 0], roi_gt[0, 0])
             new_points_co, new_points_la = new_points_co.to(
@@ -117,12 +125,23 @@ def sam_model_infer(model,
     return medsam_seg_mask
 
 
-def resample_nii(input_path: str,
-                 output_path: str,
+def save_numpy_to_nifti(in_arr: np.array, out_path, meta_info):
+    # torchio turn 1xHxWxD -> DxWxH
+    # so we need to squeeze and transpose back to HxWxD
+    ori_arr = np.transpose(in_arr.squeeze(), (2, 1, 0))
+    out = sitk.GetImageFromArray(ori_arr)
+    sitk_meta_translator = lambda x: [float(i) for i in x]
+    out.SetOrigin(sitk_meta_translator(meta_info["origin"]))
+    out.SetDirection(sitk_meta_translator(meta_info["direction"]))
+    out.SetSpacing(sitk_meta_translator(meta_info["spacing"]))
+    sitk.WriteImage(out, out_path)
+
+
+def resample_nii(imgs: np.array,
+                 gts: np.array,
+                 prev_seg: np.array,
                  target_spacing: tuple = (1.5, 1.5, 1.5),
-                 n=None,
-                 reference_image=None,
-                 mode="linear"):
+                ):
     """
     Resample a nii.gz file to a specified spacing using torchio.
 
@@ -132,46 +151,33 @@ def resample_nii(input_path: str,
     - target_spacing: Desired spacing for resampling. Default is (1.5, 1.5, 1.5).
     """
     # Load the nii.gz file using torchio
-    subject = tio.Subject(img=tio.ScalarImage(input_path))
-    resampler = tio.Resample(target=target_spacing, image_interpolation=mode)
-    resampled_subject = resampler(subject)
-
-    if (n != None):
-        image = resampled_subject.img
-        tensor_data = image.data
-        if (isinstance(n, int)):
-            n = [n]
-        for ni in n:
-            tensor_data[tensor_data == ni] = -1
-        tensor_data[tensor_data != -1] = 0
-        tensor_data[tensor_data != 0] = 1
-        save_image = tio.ScalarImage(tensor=tensor_data, affine=image.affine)
-        reference_size = reference_image.shape[
-            1:]  # omitting the channel dimension
-        cropper_or_padder = tio.CropOrPad(reference_size)
-        save_image = cropper_or_padder(save_image)
-    else:
-        save_image = resampled_subject.img
-
-    save_image.save(output_path)
-
-
-def read_data_from_nii(img_path, gt_path):
-    sitk_image = sitk.ReadImage(img_path)
-    sitk_label = sitk.ReadImage(gt_path)
-
-    if sitk_image.GetOrigin() != sitk_label.GetOrigin():
-        sitk_image.SetOrigin(sitk_label.GetOrigin())
-    if sitk_image.GetDirection() != sitk_label.GetDirection():
-        sitk_image.SetDirection(sitk_label.GetDirection())
-
-    sitk_image_arr, _ = sitk_to_nib(sitk_image)
-    sitk_label_arr, _ = sitk_to_nib(sitk_label)
-
     subject = tio.Subject(
-        image=tio.ScalarImage(tensor=sitk_image_arr),
-        label=tio.LabelMap(tensor=sitk_label_arr),
-    )
+                    image=tio.ScalarImage(tensor=imgs[None]), 
+                    label=tio.LabelMap(tensor=gts[None]),
+                    prev_seg=tio.LabelMap(tensor=prev_seg[None]),
+                    )
+    resampler = tio.Resample(target=target_spacing)
+    resampled_subject = resampler(subject)
+    return resampled_subject
+
+
+def read_data_from_subject(subject):
+    # sitk_image = sitk.ReadImage(img_path)
+    # sitk_label = sitk.ReadImage(gt_path)
+
+    # if sitk_image.GetOrigin() != sitk_label.GetOrigin():
+    #     sitk_image.SetOrigin(sitk_label.GetOrigin())
+    # if sitk_image.GetDirection() != sitk_label.GetDirection():
+    #     sitk_image.SetDirection(sitk_label.GetDirection())
+
+    # sitk_image_arr, _ = sitk_to_nib(sitk_image)
+    # sitk_label_arr, _ = sitk_to_nib(sitk_label)
+
+    # subject = tio.Subject(
+    #     image=tio.ScalarImage(tensor=sitk_image_arr),
+    #     label=tio.LabelMap(tensor=sitk_label_arr),
+    # )
+    # import pdb; pdb.set_trace()
     crop_transform = tio.CropOrPad(mask_name='label',
                                    target_shape=(128, 128, 128))
     padding_params, cropping_params = crop_transform.compute_crop_or_pad(
@@ -185,8 +191,10 @@ def read_data_from_nii(img_path, gt_path):
     ])
     subject_roi = infer_transform(subject)
 
+    # import pdb; pdb.set_trace()
     img3D_roi, gt3D_roi = subject_roi.image.data.clone().detach().unsqueeze(
         1), subject_roi.label.data.clone().detach().unsqueeze(1)
+    prev_seg3D_roi = subject_roi.prev_seg.data.clone().detach().unsqueeze(1)
     ori_roi_offset = (
         cropping_params[0],
         cropping_params[0] + 128 - padding_params[0] - padding_params[1],
@@ -197,11 +205,10 @@ def read_data_from_nii(img_path, gt_path):
     )
 
     meta_info = {
-        "image_path": img_path,
-        "image_shape": sitk_image_arr.shape[1:],
-        "origin": sitk_label.GetOrigin(),
-        "direction": sitk_label.GetDirection(),
-        "spacing": sitk_label.GetSpacing(),
+    #     "image_path": img_path,
+    #     "origin": sitk_label.GetOrigin(),
+    #     "direction": sitk_label.GetDirection(),
+    #     "spacing": sitk_label.GetSpacing(),
         "padding_params": padding_params,
         "cropping_params": cropping_params,
         "ori_roi": ori_roi_offset,
@@ -209,43 +216,23 @@ def read_data_from_nii(img_path, gt_path):
     return (
         img3D_roi,
         gt3D_roi,
+        prev_seg3D_roi,
         meta_info,
     )
 
 
-def save_numpy_to_nifti(in_arr: np.array, out_path, meta_info):
-    # torchio turn 1xHxWxD -> DxWxH
-    # so we need to squeeze and transpose back to HxWxD
-    ori_arr = np.transpose(in_arr.squeeze(), (2, 1, 0))
-    out = sitk.GetImageFromArray(ori_arr)
-    sitk_meta_translator = lambda x: [float(i) for i in x]
-    out.SetOrigin(sitk_meta_translator(meta_info["origin"]))
-    out.SetDirection(sitk_meta_translator(meta_info["direction"]))
-    out.SetSpacing(sitk_meta_translator(meta_info["spacing"]))
-    sitk.WriteImage(out, out_path)
+def data_preprocess(imgs, cls_gt, cls_prev_seg, orig_spacing, category_index):
+    subject = resample_nii(imgs, cls_gt, cls_prev_seg, target_spacing=[t/o for o, t in zip(orig_spacing, [1.5, 1.5, 1.5])])
+    roi_image, roi_label, roi_prev_seg, meta_info = read_data_from_subject(subject)
+    
+    meta_info["orig_shape"] = imgs.shape
+    meta_info["resampled_shape"] = subject.spatial_shape,
+    return roi_image, roi_label, roi_prev_seg, meta_info
 
 
-def data_preprocess(img_path, gt_path, category_index):
-    target_img_path = osp.join(
-        osp.dirname(img_path),
-        osp.basename(img_path).replace(".nii.gz", "_resampled.nii.gz"))
-    target_gt_path = osp.join(
-        osp.dirname(gt_path),
-        osp.basename(gt_path).replace(".nii.gz", "_resampled.nii.gz"))
-    resample_nii(img_path, target_img_path)
-    resample_nii(gt_path,
-                 target_gt_path,
-                 n=category_index,
-                 reference_image=tio.ScalarImage(target_img_path),
-                 mode="nearest")
-    roi_image, roi_label, meta_info = read_data_from_nii(
-        target_img_path, target_gt_path)
-    return roi_image, roi_label, meta_info
-
-
-def data_postprocess(roi_pred, meta_info, output_path, ori_img_path):
-    os.makedirs(osp.dirname(output_path), exist_ok=True)
-    pred3D_full = np.zeros(meta_info["image_shape"])
+def data_postprocess(roi_pred, meta_info, output_dir='outputs'):
+    os.makedirs(output_dir, exist_ok=True)
+    pred3D_full = np.zeros(*meta_info["resampled_shape"])
     padding_params = meta_info["padding_params"]
     unpadded_pred = roi_pred[padding_params[0] : 128-padding_params[1],
                              padding_params[2] : 128-padding_params[3],
@@ -254,41 +241,155 @@ def data_postprocess(roi_pred, meta_info, output_path, ori_img_path):
     pred3D_full[ori_roi[0]:ori_roi[1], ori_roi[2]:ori_roi[3],
                 ori_roi[4]:ori_roi[5]] = unpadded_pred
 
-    sitk_image = sitk.ReadImage(ori_img_path)
-    ori_meta_info = {
-        "image_path": ori_img_path,
-        "image_shape": sitk_image.GetSize(),
-        "origin": sitk_image.GetOrigin(),
-        "direction": sitk_image.GetDirection(),
-        "spacing": sitk_image.GetSpacing(),
-    }
+    # sitk_image = sitk.ReadImage(ori_img_path)
+    # ori_meta_info = {
+    #     "image_path": ori_img_path,
+    #     "image_shape": sitk_image.GetSize(),
+    #     "origin": sitk_image.GetOrigin(),
+    #     "direction": sitk_image.GetDirection(),
+    #     "spacing": sitk_image.GetSpacing(),
+    # }
     pred3D_full_ori = F.interpolate(
         torch.Tensor(pred3D_full)[None][None],
-        size=ori_meta_info["image_shape"],
+        size=meta_info["orig_shape"],
         mode='nearest').cpu().numpy().squeeze()
-    save_numpy_to_nifti(pred3D_full_ori, output_path, meta_info)
+    # save_numpy_to_nifti(pred3D_full_ori, output_path, meta_info)
+    return pred3D_full_ori
+
+
+def read_data_from_npz(npz_file):
+    data = np.load(npz_file, allow_pickle=True)
+    imgs = data.get('imgs', None)
+    gts = data.get('gts', None)
+
+    sitk_spacing = data.get('spacing', None)
+    # spacing = sitk_spacing
+    spacing = [sitk_spacing[2], sitk_spacing[0], sitk_spacing[1]]
+
+    # z-score normalize imgs
+    imgs = imgs.astype(np.float32)
+
+    # parsing boxes/clicks tensor, allow category to has more than 1 clicks
+    all_clicks = defaultdict(list)
+    # get bbox click first
+    boxes = data.get('boxes', None)
+    if (boxes is not None):
+        for cls_idx, bbox in enumerate(boxes):
+            all_clicks[cls_idx].append((
+            ((bbox['z_min']+bbox['z_max'])/2, (bbox['z_mid_y_min']+bbox['z_mid_y_max'])/2, (bbox['z_mid_x_min']+bbox['z_mid_x_max'])/2,), # center of bbox
+            [1], # positive click
+            ))
+        # all_clicks = [
+        #     [
+        #     #  ([bbox['z_mid'], (bbox['z_mid_y_min']+bbox['z_mid_y_max'])/2, (bbox['z_mid_x_min']+bbox['z_mid_x_max'])/2,], # center of bbox
+        #      ([(bbox['z_min']+bbox['z_max'])/2, (bbox['z_mid_y_min']+bbox['z_mid_y_max'])/2, (bbox['z_mid_x_min']+bbox['z_mid_x_max'])/2,
+        #     ], # center of bbox
+        #     [1], # positive click
+        #     )] for bbox in boxes
+        # ] # [[(clickl_cls1, tag), (click2_cls1, tag), ...], []]
+
+    # get point click then
+    prev_pred = data.get('prev_pred', np.zeros_like(imgs, dtype=np.uint8))
+    clicks = data.get('clicks', None)
+    if (clicks is not None):
+        for cls_idx, cls_click_dict in enumerate(clicks):
+            for click in cls_click_dict['fg']:
+            #     all_clicks[cls_idx].append(((click[2], click[1], click[0]), [1]))
+                all_clicks[cls_idx].append((click, [1]))
+            for click in cls_click_dict['bg']:
+                all_clicks[cls_idx].append((click, [0]))
+            # if len(cls_click_dict['fg'])<1 :
+            #     center = np.unravel_index(np.argmax(prev_pred==(cls_idx+1)), prev_pred.shape)
+            #     all_clicks[cls_idx].append((center, [1]))
+        # print(all_clicks)
+
+    # import pdb; pdb.set_trace()
+    return imgs, spacing, all_clicks, prev_pred
+
+
+def create_gt_arr(shape, point, category_index, square_size=5):
+    # Create an empty array with the same shape as the input array
+    gt_array = np.zeros(shape)
+    
+    # Extract the coordinates of the point
+    z, y, x = point
+    
+    # Calculate the half size of the square
+    half_size = square_size // 2
+    
+    # Calculate the coordinates of the square around the point
+    z_min = max(int(z - half_size), 0)
+    z_max = min(int(z + half_size) + 1, shape[0])
+    y_min = max(int(y - half_size), 0)
+    y_max = min(int(y + half_size) + 1, shape[1])
+    x_min = max(int(x - half_size), 0)
+    x_max = min(int(x + half_size) + 1, shape[2])
+    
+    # Set the values within the square to 1
+    gt_array[z_min:z_max, y_min:y_max, x_min:x_max] = category_index
+    
+    return gt_array
 
 
 if __name__ == "__main__":
-    ''' 1. read and pre-process your input data '''
-    img_path = "./test_data/kidney_right/AMOS/imagesVal/amos_0013.nii.gz"
-    gt_path =  "./test_data/kidney_right/AMOS/labelsVal/amos_0013.nii.gz"
-    category_index = 3  # the index of your target category in the gt annotation
-    output_dir = "./test_data/kidney_right/AMOS/pred/"
-    roi_image, roi_label, meta_info = data_preprocess(img_path, gt_path, category_index=category_index)
-    
-    ''' 2. prepare the pre-trained model with local path or huggingface url '''
-    ckpt_path = "https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth"
-    # or you can use the local path like: ckpt_path = "./ckpt/sam_med3d_turbo.pth"
+    ''' 1. prepare the pre-trained model with local path or huggingface url '''
+    # ckpt_path = "https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth"
+    # or you can use the local path like: 
+    ckpt_path = "./ckpt/sam_med3d_turbo_bbox_cvpr.pth"
     model = medim.create_model("SAM-Med3D",
                                pretrained=True,
                                checkpoint_path=ckpt_path)
-    
-    ''' 3. infer with the pre-trained SAM-Med3D model '''
-    roi_pred = sam_model_infer(model, roi_image, roi_gt=roi_label)
 
-    ''' 4. post-process and save the result '''
-    output_path = osp.join(output_dir, osp.basename(img_path).replace(".nii.gz", "_pred.nii.gz"))
-    data_postprocess(roi_pred, meta_info, output_path, img_path)
+    ''' 2. read and pre-process your input data '''
+    npz_file = glob("inputs/*.npz")[0]
+    out_dir = "./outputs"
+    imgs, spacing, all_clicks, prev_pred = read_data_from_npz(npz_file)
+    final_pred = np.zeros_like(imgs, dtype=np.uint8)
+    for idx, cls_clicks in all_clicks.items():
+        category_index = idx + 1
+        # import pdb; pdb.set_trace()
+        pred_ori = prev_pred==category_index
+        final_pred[pred_ori!=0] = category_index
+        if (cls_clicks[-1][1][0] == 1):
+            cls_gt = create_gt_arr(imgs.shape, cls_clicks[-1][0], category_index=category_index)
+            # print(category_index, imgs.shape, spacing, cls_clicks, (cls_gt==category_index).sum())
+            # continue
+            cls_prev_seg = prev_pred==category_index
+            roi_image, roi_label, roi_prev_seg, meta_info = data_preprocess(imgs, cls_gt, cls_prev_seg,
+                                                            orig_spacing=spacing, 
+                                                            category_index=category_index)
 
+            # import pdb; pdb.set_trace()
+            ''' 3. infer with the pre-trained SAM-Med3D model '''
+            
+            roi_pred = sam_model_infer(model, roi_image, roi_gt=roi_label, prev_low_res_mask=roi_prev_seg)
+
+            # import pdb; pdb.set_trace()
+            ''' 4. post-process and save the result '''
+            pred_ori = data_postprocess(roi_pred, meta_info, out_dir)
+            final_pred[pred_ori!=0] = category_index
+
+    output_path = osp.join(out_dir, osp.basename(npz_file))
+    np.savez_compressed(output_path, segs=final_pred)
     print("result saved to", output_path)
+
+    # import pdb; pdb.set_trace()
+    # from surface_distance import compute_surface_distances, compute_surface_dice_at_tolerance, compute_dice_coefficient
+    # def compute_multi_class_dsc(gt, seg):
+    #     dsc = []
+    #     for i in np.unique(gt)[1:]: # skip bg
+    #         gt_i = gt == i
+    #         seg_i = seg == i
+    #         dsc.append(compute_dice_coefficient(gt_i, seg_i))
+    #         print("dsc", dsc[-1])
+    #     return np.mean(dsc)
+
+    # # compute_multi_class_dsc(roi_label, roi_label)
+    # img_data = np.load('/mnt/sh_flex_storage/home/wanghaoy/code/SAM_Med3D_debug/raw_data/biomed_val/3D_val_gt/CT_AbdomenAtlas_BDMAP_00000006.npz')
+    # gt = img_data['gts']
+
+    # # gt = (gt==2)
+    # # final_pred = (final_pred==1)
+    # dsc = compute_multi_class_dsc(gt, final_pred)
+    # print('all dice:', dsc)
+    # compute_multi_class_dsc(gt==3, np.flip(pred_ori.transpose(2, 1, 0), axes=1))

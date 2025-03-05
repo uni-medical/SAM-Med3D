@@ -310,6 +310,66 @@ def get_next_click3D_torch_with_dice(prev_seg, gt_semantic_seg):
     return batch_points, batch_labels, (sum(dice_list) / len(dice_list)).item()
 
 
+
+def mask2D_to_bbox(gt2D, file):
+    try:
+        y_indices, x_indices = torch.where(gt2D > 0)
+        x_min, x_max = torch.min(x_indices).item(), torch.max(x_indices).item()
+        y_min, y_max = torch.min(y_indices).item(), torch.max(y_indices).item()
+        # add perturbation to bounding box coordinates
+        H, W = gt2D.shape
+        bbox_shift = torch.randint(0, 6, (1,)).item()
+        scale_y, scale_x = gt2D.shape
+        bbox_shift_x = int(bbox_shift * scale_x / 256)
+        bbox_shift_y = int(bbox_shift * scale_y / 256)
+        #print(f'{bbox_shift_x=} {bbox_shift_y=} with orig {bbox_shift=}')
+        x_min = max(0, x_min - bbox_shift_x)
+        x_max = min(W - 1, x_max + bbox_shift_x)
+        y_min = max(0, y_min - bbox_shift_y)
+        y_max = min(H - 1, y_max + bbox_shift_y)
+        boxes = torch.tensor([x_min, y_min, x_max, y_max])
+        return boxes
+    except Exception as e:
+        raise Exception(f'error {e} with file {file}')
+
+
+def mask3D_to_bbox(gt3D, file):
+    b_dict = {}
+    z_indices, y_indices, x_indices = torch.where(gt3D > 0)
+    z_min, z_max = torch.min(z_indices).item(), torch.max(z_indices).item()
+    # middle of z_indices
+    z_middle = z_indices[len(z_indices) // 2].item()
+    D, H, W = gt3D.shape
+    b_dict['z_min'] = z_min
+    b_dict['z_max'] = z_max
+    b_dict['z_mid'] = z_middle
+
+    gt_mid = gt3D[z_middle]
+
+    box_2d = mask2D_to_bbox(gt_mid, file)
+    x_min, y_min, x_max, y_max = box_2d
+    b_dict['z_mid_x_min'] = x_min
+    b_dict['z_mid_y_min'] = y_min
+    b_dict['z_mid_x_max'] = x_max
+    b_dict['z_mid_y_max'] = y_max
+
+    assert z_min == max(0, z_min)
+    assert z_max == min(D - 1, z_max)
+    return b_dict
+
+
+def get_3D_bbox_from_gt3D(gt3D):
+    batch_bboxes = []
+
+    for i in range(gt3D.shape[0]):
+        b_dict = mask3D_to_bbox(gt3D[i, 0], "fname")
+        batch_bboxes.append(torch.Tensor([
+                                (b_dict['z_min'], b_dict['z_mid_x_min'], b_dict['z_mid_y_min']), 
+                                (b_dict['z_max'], b_dict['z_mid_x_max'], b_dict['z_mid_y_max']),
+                                ])[None])
+    return batch_bboxes
+    
+
 def show_mask(mask, ax, random_color=False):
     if random_color:
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
@@ -329,9 +389,13 @@ def show_point(point, label, ax):
 
 
 if __name__ == "__main__":
-    gt2D = torch.randn((2, 1, 256, 256)).cuda()
-    prev_masks = torch.zeros_like(gt2D).to(gt2D.device)
+    gt3D = torch.randn((2, 1, 64, 256, 256)).cuda()
+    prev_masks = torch.zeros_like(gt3D).to(gt3D.device)
+    prev_masks [:, 0, 10:20, 10:20, 10:20] = 1
     batch_points, batch_labels = get_next_click3D_torch(
-        prev_masks.to(gt2D.device), gt2D
+        prev_masks.to(gt3D.device), gt3D
     )
     print(batch_points)
+
+    print(get_3D_bbox_from_gt3D(prev_masks))
+    print(get_3D_bbox_from_gt3D(prev_masks)[0].shape)

@@ -275,8 +275,8 @@ class Test_Single(Dataset):
             label=tio.LabelMap.from_sitk(sitk_label),
         )
 
-        if "/ct_" in self.image_paths[index]:
-            subject = tio.Clamp(-1000, 1000)(subject)
+        # if "/ct_" in self.image_paths[index]:
+        #     subject = tio.Clamp(-1000, 1000)(subject)
 
         if self.transform:
             try:
@@ -300,34 +300,87 @@ class Test_Single(Dataset):
         self.image_paths.append(paths)
         self.label_paths.append(paths.replace("images", "labels"))
 
-
-if __name__ == "__main__":
-    test_dataset = Dataset_Union_ALL_Infer(
-        paths=['./data/inference/heart/hearts/',],
-        data_type='infer',
-        transform=tio.Compose([
-            tio.ToCanonical(),
-            tio.CropOrPad(target_shape=(128,128,128)),
-        ]),
+class SegFM3D_Dataset(Dataset):
+    def __init__(
+        self,
+        paths,
+        mode="train",
+        data_type="Tr",
+        image_size=128,
+        transform=None,
+        threshold=500,
+        split_num=1,
+        split_idx=0,
         pcc=False,
-        get_all_meta_info=True,
-        split_idx = 0,
-        split_num = 1,
+        get_all_meta_info=False,
+    ):
+        self.paths = paths
+        self.data_type = data_type
+        self.split_num = split_num
+        self.split_idx = split_idx
+
+        self._set_file_paths(self.paths)
+        self.image_size = image_size
+        self.transform = transform
+        self.threshold = threshold
+        self.mode = mode
+        self.pcc = pcc
+        self.get_all_meta_info = get_all_meta_info
+
+    def __len__(self):
+        return len(self.label_paths)
+
+    def __getitem__(self, index):
+        npz_file = np.load(self.image_paths[index])
+        image = npz_file['imgs'][None] # 3D -> 4D
+        label = npz_file['gts'][None]
+
+        subject = tio.Subject(
+            image=tio.ScalarImage(tensor=torch.tensor(image, dtype=torch.float32)),
+            label=tio.LabelMap(tensor=torch.tensor(label, dtype=torch.float32)),
         )
 
-    # test_dataset = Dataset_Union_ALL_Val(
-        # paths=["./data/validation/experimental/heart/hearts"],
-        # mode="Val",
-        # transform=tio.Compose(
-            # [
-                # tio.ToCanonical(),
-                # tio.CropOrPad(target_shape=(128, 128, 128)),
-            # ]
-        # ),
-        # threshold=0,
-        # pcc=False,
-        # get_all_meta_info=True,
-    # )
+        if self.transform:
+            try:
+                subject = self.transform(subject)
+            except:
+                print("fail to load data:", self.image_paths[index])
+
+        if subject.label.data.sum() <= self.threshold:
+            return self.__getitem__(np.random.randint(self.__len__()))
+        return {
+            "image": subject.image.data.clone().detach(),
+            "label": subject.label.data.clone().detach(),
+            "spacing": npz_file['spacing'],
+        }
+
+    def _set_file_paths(self, paths):
+        self.image_paths = []
+        self.label_paths = []
+
+        # if ${path}/labelsTr exists, search all .nii.gz
+        for path in paths:
+            d = path
+            if os.path.exists(d):
+                for name in os.listdir(d):
+                    base = os.path.basename(name).split(".npz")[0]
+                    img_path = os.path.join(
+                        path, f"{base}.npz"
+                    )
+                    self.image_paths.append(img_path)
+                    self.label_paths.append(img_path)
+
+
+
+
+if __name__ == "__main__":
+    from data_paths import img_datas
+    test_dataset = SegFM3D_Dataset(paths=img_datas, transform=tio.Compose([
+        tio.ToCanonical(),
+        # tio.CropOrPad(mask_name='label', target_shape=(256, 256, 256)), # crop only object region
+        # tio.RandomFlip(axes=(0, 1, 2)),
+    ]),
+    threshold=1000)
 
     test_dataloader = DataLoader(
         dataset=test_dataset, sampler=None, batch_size=1, shuffle=True
@@ -336,8 +389,92 @@ if __name__ == "__main__":
     print(len(test_dataset))
     
     # for i, j, n in test_dataloader:
-    for i, j in test_dataloader:
-        print(i.shape)
-        # print(j.shape)
-        # print(n)
-        print(j)
+    # for data in test_dataloader:
+    #     # import pdb; pdb.set_trace()
+    #     print(*(data["image"].shape), *(data["label"].shape), *list(data['spacing'].tolist()[0]))
+
+    import os
+    from tqdm import tqdm
+
+    def mask2D_to_bbox(gt2D, file):
+        y_indices, x_indices = np.where(gt2D > 0)
+        x_min, x_max = np.min(x_indices), np.max(x_indices)
+        y_min, y_max = np.min(y_indices), np.max(y_indices)
+        # add perturbation to bounding box coordinates
+        H, W = gt2D.shape
+        bbox_shift = np.random.randint(0, 6, 1)[0]
+        scale_y, scale_x = gt2D.shape
+        bbox_shift_x = int(bbox_shift * scale_x/256)
+        bbox_shift_y = int(bbox_shift * scale_y/256)
+        #print(f'{bbox_shift_x=} {bbox_shift_y=} with orig {bbox_shift=}')
+        x_min = max(0, x_min - bbox_shift_x)
+        x_max = min(W-1, x_max + bbox_shift_x)
+        y_min = max(0, y_min - bbox_shift_y)
+        y_max = min(H-1, y_max + bbox_shift_y)
+        boxes = np.array([x_min, y_min, x_max, y_max])
+        return boxes
+
+    def mask3D_to_bbox(gt3D, file):
+        b_dict = {}
+        z_indices, y_indices, x_indices = np.where(gt3D > 0)
+        z_min, z_max = np.min(z_indices), np.max(z_indices)
+        # middle of z_indices
+        z_middle = z_indices[len(z_indices)//2]
+        D, H, W = gt3D.shape
+        b_dict['z_min'] = z_min
+        b_dict['z_max'] = z_max
+        b_dict['z_mid'] = z_middle
+
+        gt_mid = gt3D[z_middle]
+
+        box_2d = mask2D_to_bbox(gt_mid, file)
+        x_min, y_min, x_max, y_max = box_2d
+        b_dict['z_mid_x_min'] = x_min
+        b_dict['z_mid_y_min'] = y_min
+        b_dict['z_mid_x_max'] = x_max
+        b_dict['z_mid_y_max'] = y_max
+
+        assert z_min == max(0, z_min)
+        assert z_max == min(D-1, z_max)
+        return b_dict
+
+    class BufferedLogger:
+        def __init__(self, file_path, buffer_size=50):
+            self.file_path = file_path
+            self.buffer_size = buffer_size
+            self.buffer = []
+
+        def log(self, message):
+            self.buffer.append(message)
+            if len(self.buffer) >= self.buffer_size:
+                self.flush()
+
+        def flush(self):
+            with open(self.file_path, 'a') as f:
+                for message in self.buffer:
+                    f.write(message + '\n')
+            self.buffer = []
+
+        def close(self):
+            if self.buffer:
+                self.flush()
+
+    def process_data_and_log(test_dataloader, logger):
+        for data in tqdm(test_dataloader):
+            b_dict = mask3D_to_bbox(data['label'].squeeze(), "test_fname")
+            gt_shape = (b_dict["z_max"]-b_dict["z_min"], 
+                        b_dict["z_mid_x_max"]-b_dict["z_mid_x_min"], 
+                        b_dict["z_mid_y_max"]-b_dict["z_mid_y_min"])
+            spacing = data['spacing'].tolist()[0]
+            phy_shape = (gt_shape[0]*spacing[2], gt_shape[1]*spacing[0], gt_shape[2]*spacing[1])
+            message = f"{list(data['spacing'].tolist()[0])} {gt_shape} {phy_shape} {data['image'].shape}"
+            logger.log(message)
+
+
+    log_file_path = 'all_info.log'
+    logger = BufferedLogger(log_file_path)
+
+    try:
+        process_data_and_log(test_dataloader, logger)
+    finally:
+        logger.close()

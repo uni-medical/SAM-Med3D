@@ -55,7 +55,7 @@ class PromptEncoder3D(nn.Module):
         self.image_embedding_size = image_embedding_size
         self.pe_layer = PositionEmbeddingRandom3D(embed_dim // 3)
 
-        self.num_point_embeddings: int = 2  # pos/neg point
+        self.num_point_embeddings: int = 4  # pos/neg point + bbox
         point_embeddings = [nn.Embedding(1, embed_dim) for i in range(self.num_point_embeddings)]
         self.point_embeddings = nn.ModuleList(point_embeddings)
         self.not_a_point_embed = nn.Embedding(1, embed_dim)
@@ -106,7 +106,7 @@ class PromptEncoder3D(nn.Module):
     def _embed_boxes(self, boxes: torch.Tensor) -> torch.Tensor:
         """Embeds box prompts."""
         boxes = boxes + 0.5  # Shift to center of pixel
-        coords = boxes.reshape(-1, 2, 2)
+        coords = boxes.reshape(-1, 2, 3)
         corner_embedding = self.pe_layer.forward_with_coords(coords, self.input_image_size)
         corner_embedding[:, 0, :] += self.point_embeddings[2].weight
         corner_embedding[:, 1, :] += self.point_embeddings[3].weight
