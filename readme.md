@@ -15,8 +15,14 @@ Details can be found in [link](https://github.com/JunMa11/CVPR-MedSegFMCompetiti
 Follow the following steps to run the source code:
 1. download the ckpt from [TBD]() and then put it into `ckpt`;
 2. put your test data into `inputs`;
-3. follow the [readme](https://github.com/uni-medical/SAM-Med3D?tab=readme-ov-file#quick-start-for-sam-med3d-inference) in SAM-Med3D to install packages;
-4. install the special version of `medim` from https://github.com/uni-medical/MedIM/tree/CVPR25_3DFM with these commands:
+3. follow the [readme](https://github.com/uni-medical/SAM-Med3D?tab=readme-ov-file#quick-start-for-sam-med3d-inference) in SAM-Med3D to install dependency:
+``` bash
+conda create --name sammed3d python=3.10 
+conda activate sammed3d
+pip install light-the-torch && ltt install torch
+pip install torchio opencv-python-headless matplotlib prefetch_generator monai edt medim
+```
+5. install the special version of `medim` from https://github.com/uni-medical/MedIM/tree/CVPR25_3DFM with these commands:
 ``` bash
 git clone https://github.com/uni-medical/MedIM.git --branch CVPR25_3DFM
 cd MedIM
