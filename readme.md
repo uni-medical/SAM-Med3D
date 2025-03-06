@@ -4,7 +4,7 @@
 And here's a quick tutorial to help you start from our baseline.
 
 ## Quick tutorial to reproduce the SAM-Med3D baseline
-### How to infer/evaluate SAM-Med3D baseline
+### How to infer/evaluate with SAM-Med3D
 #### From the docker image
 You can download the docker image from [Google Drive](https://drive.google.com/file/d/1NO6sPJT9dQXSYNK_y2_L7V109yOnAgi7/view?usp=drive_link) and run it with this command:
 ``` bash
@@ -35,7 +35,7 @@ popd
 bash predict.sh
 ```
 
-### How to train SAM-Med3D baseline
+### How to train a SAM-Med3D baseline
 Follow the following steps to run the training code:
 1. Download the training data and preprocess them with [data/resample_preprocess_for_CVPR_3DFM.py](data/resample_preprocess_for_CVPR_3DFM.py). And check the [utils/data_paths.py](utils/data_paths.py) to set correct `img_datas`:
 ```python
