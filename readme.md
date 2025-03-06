@@ -10,6 +10,7 @@ The official repo of "SAM-Med3D: Towards General-purpose Segmentation Models for
 </div>
 
 ## 🔥🌻📰 News 📰🌻🔥
+- **[Challenge]** SAM-Med3D is invited as a baseline of [CVPR 2025 Challenge: Foundation Models for Interactive 3D Biomedical Image Segmentation](https://www.codabench.org/competitions/5263/) and the tutorial is [here](https://github.com/uni-medical/SAM-Med3D/tree/CVPR25_3DFM). We kindly invite you to join the challenge and build better foundation models for 3D medical image segmentation!
 - **[Examples]** SAM-Med3D is now supported in [MedIM](https://github.com/uni-medical/MedIM), you can easily get our model with one-line Python code. Our new example is in [`medim_infer.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_infer.py).
 - **[Data]** We have now released all labels of our training dataset SA-Med3D-140K. Due to the large volume of image data (over 1T), we are currently seeking an appropriate release method. For now, you can directly contact small_dark@sina.com to obtain it. Download Link: [Baidu Netdisk](https://pan.baidu.com/s/12Nxwd10uVZs57O8WP8Y-Hg?pwd=cv6t) and [Google Drive](https://drive.google.com/file/d/1F7lRWM5mdEKSRQtvJ8ExEyNrWIEkXc-G/view?usp=drive_link).
 - **[Paper]** SAM-Med3D is accepted as [ECCV BIC 2024 Oral](https://www.bioimagecomputing.com/program/selected-contributions/)
