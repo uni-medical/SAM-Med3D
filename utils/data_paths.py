@@ -9,4 +9,4 @@
 from glob import glob 
 import os.path as osp
 PROJ_DIR=osp.dirname(osp.dirname(__file__))
-img_datas = glob(osp.join(PROJ_DIR, "data", "segFM3D_16G_pre", "*", "*"))
+img_datas = glob(osp.join(PROJ_DIR, "data", "resampled_3D_train_npz_random_10percent_16G", "*", "*"))
