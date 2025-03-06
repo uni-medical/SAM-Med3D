@@ -24,6 +24,20 @@ we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exc
 - 🚤 Achieved efficient promptable segmentation, requiring 10 to 100 times fewer prompt points for satisfactory 3D outcomes.
 - 🏆 Conducted a thorough assessment of SAM-Med3D across 16 frequently used volumetric medical image segmentation datasets.
 
+## 🔗 Checkpoint
+
+| Model | Hugging Face | Google Drive | Baidu NetDisk |
+|----------|----------|----------|----------|
+| SAM-Med3D-turbo    | [Download](https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth) | [Download](https://drive.google.com/file/d/1MuqYRQKIZb4YPtEraK8zTKKpp-dUQIR9/view?usp=sharing) | [Download (pwd:l6ol)](https://pan.baidu.com/s/1OEVtiDc6osG0l9HkQN4hEg?pwd=l6ol) |
+<details>
+<summary>More</summary>
+| Model | Google Drive | Baidu NetDisk |
+| SAM-Med3D-base | [Download](https://drive.google.com/file/d/1PFeUjlFMAppllS9x1kAWyCYUJM9re2Ub/view?usp=drive_link) | [Download (pwd:r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3) |
+| SAM-Med3D-organ    | [Download](https://drive.google.com/file/d/1kKpjIwCsUWQI-mYZ2Lww9WZXuJxc3FvU/view?usp=sharing) | [Download (pwd:5t7v)](https://pan.baidu.com/s/1Dermdr-ZN8NMWELejF1p1w?pwd=5t7v) |
+| SAM-Med3D-brain    | [Download](https://drive.google.com/file/d/1otbhZs9uugSWkAbcQLLSmPB8jo5rzFL2/view?usp=sharing) | [Download (pwd:yp42)](https://pan.baidu.com/s/1S2-buTga9D4Nbrt6fevo8Q?pwd=yp42) |
+Other checkpoints are available with their official link: [SAM](https://drive.google.com/file/d/1_U26MIJhWnWVwmI5JkGg2cd2J6MvkqU-/view?usp=drive_link) and [SAM-Med2D](https://drive.google.com/file/d/1ARiB5RkSsWmAB_8mqWnwDF8ZKTtFwsjl/view?usp=drive_link).
+</details>
+
 ## 🔨 Usage
 ### Quick Start for SAM-Med3D inference
 > **Note:**
@@ -209,20 +223,6 @@ For validation of SAM and SAM-Med2D on 3D volumetric data, you can refer to `scr
 
 Hint: We also provide a simple script `sum_result.py` to help summarize the results from files like `./results/sam_med3d.py`. 
 
-## 🔗 Checkpoint
-
-| Model | Hugging Face | Google Drive | Baidu NetDisk |
-|----------|----------|----------|----------|
-| SAM-Med3D-turbo    | [Download](https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth) | [Download](https://drive.google.com/file/d/1MuqYRQKIZb4YPtEraK8zTKKpp-dUQIR9/view?usp=sharing) | [Download (pwd:l6ol)](https://pan.baidu.com/s/1OEVtiDc6osG0l9HkQN4hEg?pwd=l6ol) |
-<details>
-<summary>More</summary>
-| Model | Google Drive | Baidu NetDisk |
-| SAM-Med3D-base | [Download](https://drive.google.com/file/d/1PFeUjlFMAppllS9x1kAWyCYUJM9re2Ub/view?usp=drive_link) | [Download (pwd:r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3) |
-| SAM-Med3D-organ    | [Download](https://drive.google.com/file/d/1kKpjIwCsUWQI-mYZ2Lww9WZXuJxc3FvU/view?usp=sharing) | [Download (pwd:5t7v)](https://pan.baidu.com/s/1Dermdr-ZN8NMWELejF1p1w?pwd=5t7v) |
-| SAM-Med3D-brain    | [Download](https://drive.google.com/file/d/1otbhZs9uugSWkAbcQLLSmPB8jo5rzFL2/view?usp=sharing) | [Download (pwd:yp42)](https://pan.baidu.com/s/1S2-buTga9D4Nbrt6fevo8Q?pwd=yp42) |
-Other checkpoints are available with their official link: [SAM](https://drive.google.com/file/d/1_U26MIJhWnWVwmI5JkGg2cd2J6MvkqU-/view?usp=drive_link) and [SAM-Med2D](https://drive.google.com/file/d/1ARiB5RkSsWmAB_8mqWnwDF8ZKTtFwsjl/view?usp=drive_link).
-</details>
-
 ## 🗼 Method
 <div align="center">
   <img src="assets/comparison.png">
@@ -231,46 +231,8 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
   <img src="assets/architecture.png">
 </div>
 
-## 🏆 Results
-### 💡 Overall Performance
-| **Model**    | **Prompt**   | **Resolution**                 | **Inference Time (s)** | **Overall Dice** |
-|--------------|--------------|--------------------------------|------------------|------------------|
-| SAM          | N points     | 1024×1024×N                    | 13               | 16.15            |
-| SAM-Med2D    | N points     | 256×256×N                      | 4                | 36.83            |
-| SAM-Med3D    | 1 point      | 128×128×128                    | 2                | 38.65            |
-| SAM-Med3D    | 10 points    | 128×128×128                    | 6                | 49.02            |
-| **SAM-Med3D-turbo** | 1 points | 128×128×128                 | 6                | 76.27            |
-| **SAM-Med3D-turbo** | 10 points | 128×128×128                | 6                | 80.71            |
-
-> **Note:** Quantitative comparison of different methods on our evaluation dataset. Here, N denotes the count of slices containing the target object (10 ≤ N ≤ 200). Inference time is calculated with N=100, excluding the time for image processing and simulated prompt generation.
-
-
-
-### 💡 Dice on Different Anatomical Architecture and Lesions
-| **Model**    | **Prompt**   | **A&T** | **Bone** | **Brain** | **Cardiac** | **Muscle** | **Lesion** | **Unseen Organ** | **Unseen Lesion** |
-|--------------|--------------|---------|----------|-----------|-------------|------------|------------|-----------------|-------------------|
-| SAM          | N points     | 19.93   | 17.85    | 29.73     | 8.44        | 3.93       | 11.56      | 12.14           | 8.88   |
-| SAM-Med2D    | N points     | 50.47   | 32.70    | 36.00     | 40.18       | 43.85      | 24.90      | 19.36           | 44.87  |
-| SAM-Med3D    | 1 point      | 46.12   | 33.30    | 49.14     | 61.04       | 53.78      | 39.56      | 23.85           | 40.53  |
-| SAM-Med3D    | 10 points    | 58.61   | 43.52    | 54.01     | 68.50       | 69.45      | 47.87      | 29.05           | 48.44  |
-| **SAM-Med3D-turbo** |  1 points | 80.76 | 83.38  | 43.74     | 87.12       | 89.74      | 58.06      | 35.99           | 44.22  |
-| **SAM-Med3D-turbo** | 10 points | 85.42 | 85.34  | 61.27     | 90.97       | 91.62      | 64.80      | 48.10           | 62.72  |
-
-
-> **Note:** Comparison from the perspective of anatomical structure and lesion. A&T represents Abdominal and Thorax targets. N denotes the count of slices containing the target object (10 ≤ N ≤ 200).
-
-
-### 💡 Visualization
-<div align="center">
-  <img src="assets/vis_anat.png">
-</div>
-<div align="center">
-  <img src="assets/vis_modal.png">
-</div>
-
-
 <!-- ## 🗓️ Ongoing 
-- [ ] Dataset release
+- [] Dataset release
 - [x] Train code release
 - [x] [Feature] Evaluation on 3D data with 2D models (slice-by-slice)
 - [x] Evaluation code release
