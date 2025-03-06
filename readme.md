@@ -277,13 +277,14 @@ Other checkpoints are available with their official link: [SAM](https://drive.go
 
 ## 📬 Citation
 ```
-@misc{wang2023sammed3d,
-      title={SAM-Med3D}, 
+@misc{wang2024sammed3dgeneralpurposesegmentationmodels,
+      title={SAM-Med3D: Towards General-purpose Segmentation Models for Volumetric Medical Images}, 
       author={Haoyu Wang and Sizheng Guo and Jin Ye and Zhongying Deng and Junlong Cheng and Tianbin Li and Jianpin Chen and Yanzhou Su and Ziyan Huang and Yiqing Shen and Bin Fu and Shaoting Zhang and Junjun He and Yu Qiao},
-      year={2023},
+      year={2024},
       eprint={2310.15161},
       archivePrefix={arXiv},
-      primaryClass={cs.CV}
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2310.15161}, 
 }
 ```
 
