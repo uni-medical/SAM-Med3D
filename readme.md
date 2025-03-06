@@ -3,7 +3,7 @@
 [SAM-Med3D](https://github.com/uni-medical/SAM-Med3D) is selected as the baseline model for [CVPR 2025 Challenge: Foundation Models for Interactive 3D Biomedical Image Segmentation](https://www.codabench.org/competitions/5263/). 
 And here's a quick tutorial to help you start from our baseline.
 
-## Quick tutorial to reproduce the SAM-Med3D baseline
+## ➡️ Quick tutorial to reproduce the SAM-Med3D baseline
 ### How to infer/evaluate with SAM-Med3D
 #### From the docker image
 You can download the docker image from [Google Drive](https://drive.google.com/file/d/1NO6sPJT9dQXSYNK_y2_L7V109yOnAgi7/view?usp=drive_link) and run it with this command:
@@ -64,3 +64,16 @@ python train.py \
  --checkpoint "ckpt/sam_med3d_turbo_bbox_init.pth" \
  --lr 8e-5
 ```
+## 📬 Citation
+```bibtex
+@misc{wang2024sammed3dgeneralpurposesegmentationmodels,
+      title={SAM-Med3D: Towards General-purpose Segmentation Models for Volumetric Medical Images}, 
+      author={Haoyu Wang and Sizheng Guo and Jin Ye and Zhongying Deng and Junlong Cheng and Tianbin Li and Jianpin Chen and Yanzhou Su and Ziyan Huang and Yiqing Shen and Bin Fu and Shaoting Zhang and Junjun He and Yu Qiao},
+      year={2024},
+      eprint={2310.15161},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2310.15161}, 
+}
+```
+
