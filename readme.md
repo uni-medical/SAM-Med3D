@@ -1,5 +1,5 @@
 # SAM-Med3D Baseline for [CVPR 2025 Challenge: Foundation Models for Interactive 3D Biomedical Image Segmentation](https://www.codabench.org/competitions/5263/)
-## Introduction
+## 📖 Introduction
 [SAM-Med3D](https://github.com/uni-medical/SAM-Med3D) is selected as the baseline model for [CVPR 2025 Challenge: Foundation Models for Interactive 3D Biomedical Image Segmentation](https://www.codabench.org/competitions/5263/). 
 And here's a quick tutorial to help you start from our baseline.
 
