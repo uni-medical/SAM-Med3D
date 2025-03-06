@@ -64,6 +64,11 @@ python train.py \
  --checkpoint "ckpt/sam_med3d_turbo_bbox_init.pth" \
  --lr 8e-5
 ```
+### Minimum Training Requirements
+- **GPU**: 16 GB DRAM (`batch_size=2`), 48 GB DRAM (`batch_size=6`)
+- **Memory**: 64 GB
+- **Expected Time Cost**: ~6 GPU days for a 200-epoch experiment (1 epoch takes 0.8 GPU hours) for the Coreset Data Track (10% of all data)
+
 ## 📬 Citation
 ```bibtex
 @misc{wang2024sammed3dgeneralpurposesegmentationmodels,
