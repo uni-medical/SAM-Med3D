@@ -56,6 +56,8 @@ conda activate sammed3d
 pip install light-the-torch && ltt install torch
 pip install torchio opencv-python-headless matplotlib prefetch_generator monai edt medim
 ```
+(if encounter OMP issue in Win, please refer to [link](https://github.com/uni-medical/SAM-Med3D/issues/103))
+
 Then, use [`medim_infer.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_infer.py) to test the inference:
 ```
 python medim_infer.py
