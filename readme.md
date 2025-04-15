@@ -1,4 +1,4 @@
-# SAM-Med3D \[[Paper](https://arxiv.org/abs/2310.15161)] \[[Supplementary](https://github.com/uni-medical/SAM-Med3D/blob/main/paper/SAM_Med3D_ECCV_Supplementary.pdf)\] \[[Data](https://drive.google.com/file/d/1F7lRWM5mdEKSRQtvJ8ExEyNrWIEkXc-G/view?usp=drive_link)\]
+# SAM-Med3D \[[Paper](https://arxiv.org/abs/2310.15161)] \[[Suppl](https://github.com/uni-medical/SAM-Med3D/blob/main/paper/SAM_Med3D_ECCV_Supplementary.pdf)\] \[[Data](https://drive.google.com/file/d/1F7lRWM5mdEKSRQtvJ8ExEyNrWIEkXc-G/view?usp=drive_link)\]
 [![x](https://img.shields.io/badge/cs.CV-2310.15161-b31b1b?logo=arxiv&logoColor=red)](https://arxiv.org/abs/2310.15161)
 [![x](https://img.shields.io/badge/WeChat-Group-green?logo=wechat)](https://github.com/uni-medical/SAM-Med3D/tree/main?tab=readme-ov-file#-discussion-group)
 
@@ -15,7 +15,6 @@ The official repo of "SAM-Med3D: Towards General-purpose Segmentation Models for
 - **[Data]** We have now released all labels of our training dataset SA-Med3D-140K. Due to the large volume of image data (over 1T), we are currently seeking an appropriate release method. For now, you can directly contact small_dark@sina.com to obtain it. Download Link: [Baidu Netdisk](https://pan.baidu.com/s/12Nxwd10uVZs57O8WP8Y-Hg?pwd=cv6t) and [Google Drive](https://drive.google.com/file/d/1F7lRWM5mdEKSRQtvJ8ExEyNrWIEkXc-G/view?usp=drive_link).
 - **[Paper]** SAM-Med3D is accepted as [ECCV BIC 2024 Oral](https://www.bioimagecomputing.com/program/selected-contributions/)
 - **[Model]** A newer version of finetuned SAM-Med3D named `SAM-Med3D-turbo` is released now. We fine-tuned it on 44 datasets ([list](https://github.com/uni-medical/SAM-Med3D/issues/2#issuecomment-1849002225)) to improve the performance. Hope this update can help you 🙂.
-- **[Model]** Finetuned SAM-Med3D for organ/brain segmentation is released now! Hope you enjoy the enhanced performance for specific tasks 😉. Details are in [results](https://github.com/uni-medical/SAM-Med3D/blob/main/readme.md#-dice-on-different-anatomical-architecture-and-lesions) and [ckpt](https://github.com/uni-medical/SAM-Med3D#-checkpoint).
 - **[Repos]** If you are interested in computer vision, 
 we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exciting projects like [SAM-Med2D](https://github.com/OpenGVLab/SAM-Med2D/tree/main)!
 
