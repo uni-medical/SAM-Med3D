@@ -8,7 +8,7 @@ And here's a quick tutorial to help you start from our baseline.
 #### From the docker image
 You can download the docker image from [Google Drive](https://drive.google.com/file/d/1NO6sPJT9dQXSYNK_y2_L7V109yOnAgi7/view?usp=drive_link) and run it with this command:
 ``` bash
-docker container run --gpus "device=0" -m 32G --name sammed3d --rm -v $PWD/inputs/:/workspace/inputs/ -v $PWD/outputs/:/workspace/outputs/ sammed3d_baseline:latest /bin/bash -c "sh predict.sh
+docker container run --gpus "device=0" -m 32G --name sammed3d --rm -v $PWD/inputs/:/workspace/inputs/ -v $PWD/outputs/:/workspace/outputs/ blueyo0/sammed3d_baseline:latest /bin/bash -c "sh predict.sh"
 ```
 This docker will predict all data in `inputs` and save the results in the `outputs`. Details of the challenge evaluation code can be found in [link](https://github.com/JunMa11/CVPR-MedSegFMCompetition/tree/main).
 
