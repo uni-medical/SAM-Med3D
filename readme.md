@@ -158,26 +158,6 @@ The key options are listed below:
 
 **Hint**: Use the `--checkpoint` to set the pre-trained weight path, the model will be trained from scratch if no ckpt in the path is found!
 
-### Evaluation & Inference
-Prepare your own dataset and refer to the samples in `data/validation` to replace them according to your specific scenario. 
-Then you can simply run `bash val.sh` to **quickly validate** SAM-Med3D on your data. Or you can use `bash infer.sh` to **generate full-volume results** for your application.
-Make sure the masks are processed into the one-hot format (have only two values: the main image (foreground) and the background). We highly recommend using the spacing of `1.5mm` for the best experience.
-
-```
-python validation.py --seed 2023\
- -vp ./results/vis_sam_med3d \
- -cp ./ckpt/sam_med3d_turbo.pth \
- -tdp ./data/medical_preprocessed -nc 1 \
- --save_name ./results/sam_med3d.py
-```
-
-- vp: visualization path, dir to save the final visualization files
-- cp: checkpoint path
-- tdp: test data path, where your data is placed
-- nc: number of clicks of prompt points
-- save_name: filename to save evaluation results 
-- (optional) skip_existing_pred: skip and not predict if output file is found existing
-
 ## 🗼 Method
 <div align="center">
   <img src="assets/comparison.png">
@@ -186,13 +166,6 @@ python validation.py --seed 2023\
   <img src="assets/architecture.png">
 </div>
 
-<!-- ## 🗓️ Ongoing 
-- [] Dataset release
-- [x] Train code release
-- [x] [Feature] Evaluation on 3D data with 2D models (slice-by-slice)
-- [x] Evaluation code release
-- [x] Pre-trained model release
-- [x] Paper release -->
 
 ## 📬 Citation
 ```
