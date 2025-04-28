@@ -25,28 +25,14 @@ we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exc
 
 ## 🔗 Checkpoint
 
- - **SAM-Med3D-turbo**: [Hugging Face](https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth) | [Google Drive](https://drive.google.com/file/d/1MuqYRQKIZb4YPtEraK8zTKKpp-dUQIR9/view?usp=sharing) | [Baidu NetDisk (pwd:l6ol)](https://pan.baidu.com/s/1OEVtiDc6osG0l9HkQN4hEg?pwd=l6ol)
+**SAM-Med3D-turbo**: [Hugging Face](https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth) | [Google Drive](https://drive.google.com/file/d/1MuqYRQKIZb4YPtEraK8zTKKpp-dUQIR9/view?usp=sharing) | [Baidu NetDisk (pwd:l6ol)](https://pan.baidu.com/s/1OEVtiDc6osG0l9HkQN4hEg?pwd=l6ol)
 
-<details>
-  <summary>More</summary>
-
-- **SAM-Med3D-base**:  
-  [Google Drive](https://drive.google.com/file/d/1PFeUjlFMAppllS9x1kAWyCYUJM9re2Ub/view?usp=drive_link) | [Baidu NetDisk (pwd: r5o3)](https://pan.baidu.com/s/18uhMXy_XO0yy3ODj66N8GQ?pwd=r5o3)  
-- **SAM-Med3D-organ**:  
-  [Google Drive](https://drive.google.com/file/d/1kKpjIwCsUWQI-mYZ2Lww9WZXuJxc3FvU/view?usp=sharing) | [Baidu NetDisk (pwd: 5t7v)](https://pan.baidu.com/s/1Dermdr-ZN8NMWELejF1p1w?pwd=5t7v)  
-- **SAM-Med3D-brain**:  
-  [Google Drive](https://drive.google.com/file/d/1otbhZs9uugSWkAbcQLLSmPB8jo5rzFL2/view?usp=sharing) | [Baidu NetDisk (pwd: yp42)](https://pan.baidu.com/s/1S2-buTga9D4Nbrt6fevo8Q?pwd=yp42)  
-
-Other checkpoints are available via their official links:  
-- [SAM](https://drive.google.com/file/d/1_U26MIJhWnWVwmI5JkGg2cd2J6MvkqU-/view?usp=drive_link)  
-- [SAM-Med2D](https://drive.google.com/file/d/1ARiB5RkSsWmAB_8mqWnwDF8ZKTtFwsjl/view?usp=drive_link)  
-
-</details>
 
 ## 🔨 Usage
 ### 1. Quick Start for SAM-Med3D
 > **Note:**
-> **ground-truth labels are required to generate prompt points. If you wanna to test image without ground-truth, please generate a **
+> **Ground-truth labels are required** to generate prompt points.
+> If you want to test an image without ground-truth, please generate a fake ground-truth with the target region for prompting annotated.
 
 First, set up your environment with the following commands:
 ```
