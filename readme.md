@@ -11,7 +11,7 @@ The official repo of "SAM-Med3D: Towards General-purpose Segmentation Models for
 
 ## 🔥🌻📰 News 📰🌻🔥
 - **[Challenge]** SAM-Med3D is invited as a baseline of [CVPR-MedSegFMCompetition](https://www.codabench.org/competitions/5263/) and the tutorial is [here](https://github.com/uni-medical/SAM-Med3D/tree/CVPR25_3DFM). We kindly invite you to join the challenge and build better foundation models for 3D medical image segmentation!
-- **[Examples]** SAM-Med3D is now supported in [MedIM](https://github.com/uni-medical/MedIM), you can easily get our model with one-line Python code. Details can be found in [`medim_val.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_val.py).
+- **[Examples]** SAM-Med3D is now supported in [MedIM](https://github.com/uni-medical/MedIM), you can easily get our model with one-line Python code. Details can be found in [`medim_val_single.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_val_single.py).
 - **[Data]** We have now released all labels of our training dataset SA-Med3D-140K. Due to the large volume of image data (over 1T), we are currently seeking an appropriate release method. For now, you can directly contact small_dark@sina.com to obtain it. Download Link: [Baidu Netdisk](https://pan.baidu.com/s/12Nxwd10uVZs57O8WP8Y-Hg?pwd=cv6t) and [Google Drive](https://drive.google.com/file/d/1F7lRWM5mdEKSRQtvJ8ExEyNrWIEkXc-G/view?usp=drive_link).
 - **[Paper]** SAM-Med3D is accepted as [ECCV BIC 2024 Oral](https://www.bioimagecomputing.com/program/selected-contributions/)
 - **[Model]** A newer version of finetuned SAM-Med3D named `SAM-Med3D-turbo` is released now. We fine-tuned it on 44 datasets ([list](https://github.com/uni-medical/SAM-Med3D/issues/2#issuecomment-1849002225)) to improve the performance. Hope this update can help you 🙂.
@@ -44,9 +44,9 @@ Other checkpoints are available via their official links:
 </details>
 
 ## 🔨 Usage
-### Quick Start for SAM-Med3D inference
+### 1. Quick Start for SAM-Med3D
 > **Note:**
-> Currently, labels are required to generate prompt points for inference.
+> **ground-truth labels are required to generate prompt points. If you wanna to test image without ground-truth, please generate a **
 
 First, set up your environment with the following commands:
 ```
@@ -57,39 +57,19 @@ pip install torchio opencv-python-headless matplotlib prefetch_generator monai e
 ```
 (if encounter OMP issue in Win, please refer to [link](https://github.com/uni-medical/SAM-Med3D/issues/103))
 
-Then, use [`medim_infer.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_infer.py) to test the inference:
+Then, use [`medim_val_single.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_val_single.py) to test the model:
 ```
-python medim_infer.py
+python medim_val_single.py
 ```
-
-If you want to run inference on your own data, refer to [`medim_infer.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_infer.py) for more details. You can simply modify the paths in the script to use your own data. Here's the main logic:
+You could set your custom data in the code like:
 ```
-  ''' 1. read and pre-process your input data '''
-  img_path = "./test_data/kidney_right/AMOS/imagesVal/amos_0013.nii.gz"
-  gt_path =  "./test_data/kidney_right/AMOS/labelsVal/amos_0013.nii.gz"
-  category_index = 3  # the index of your target category in the gt annotation
-  output_dir = "./test_data/kidney_right/AMOS/pred/"
-  roi_image, roi_label, meta_info = data_preprocess(img_path, gt_path, category_index=category_index)
-  
-  ''' 2. prepare the pre-trained model with local path or huggingface url '''
-  ckpt_path = "https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth"
-  # or you can use the local path like: ckpt_path = "./ckpt/sam_med3d_turbo.pth"
-  model = medim.create_model("SAM-Med3D",
-                              pretrained=True,
-                              checkpoint_path=ckpt_path)
-  
-  ''' 3. infer with the pre-trained SAM-Med3D model '''
-  roi_pred = sam_model_infer(model, roi_image, roi_gt=roi_label)
-
-  ''' 4. post-process and save the result '''
-  output_path = osp.join(output_dir, osp.basename(img_path).replace(".nii.gz", "_pred.nii.gz"))
-  data_postprocess(roi_pred, meta_info, output_path, img_path)
-
-  print("result saved to", output_path)
+img_path = "./test_data/Seg_Exps/ACDC/ACDC_test_cases/patient101_frame01_0000.nii.gz"
+gt_path =  "./test_data/Seg_Exps/ACDC/ACDC_test_gts/patient101_frame01.nii.gz"
+out_path = "./test_data/Seg_Exps/ACDC/ACDC_test_SAM_Med3d/patient101_frame01.nii.gz"
 ```
 
 
-### Training / Fine-tuning
+### 2. Steps for Training / Fine-tuning
 (we recommend fine-tuning with SAM-Med3D pre-trained weights from [link](https://github.com/uni-medical/SAM-Med3D#-checkpoint))
 
 To train the SAM-Med3D model on your own data, follow these steps:
@@ -211,24 +191,6 @@ python validation.py --seed 2023\
 - nc: number of clicks of prompt points
 - save_name: filename to save evaluation results 
 - (optional) skip_existing_pred: skip and not predict if output file is found existing
-
-**Sliding-window Inference (experimental)**: To extend the application scenario of SAM-Med3D and support more choices for full-volume inference. We provide the sliding-window mode here within `inference.py`. 
-```
-python inference.py --seed 2024\
- -cp ./ckpt/sam_med3d_turbo.pth \
- -tdp ./data/medical_preprocessed -nc 1 \
- --output_dir ./results  --task_name test_amos_move \
- --sliding_window --save_image_and_gt
-```
-- cp: checkpoint path
-- tdp: test data path, where your data is placed
-- output_dir&task_name: all your output will be saved to `<output_dir>/<task_name>`
-- (optional) sliding_window: enable the sliding-window mode. model will infer 27 patches with improved accuracy and slower responce.
-- (optional) save_image_and_gt: enable saving the full-volume image and ground-truth into `output_dir`, plz ensure your disk has enough free space when you turn on this
-
-For validation of SAM and SAM-Med2D on 3D volumetric data, you can refer to `scripts/val_sam.sh` and `scripts/val_med2d.sh` for details.
-
-Hint: We also provide a simple script `sum_result.py` to help summarize the results from files like `./results/sam_med3d.py`. 
 
 ## 🗼 Method
 <div align="center">
