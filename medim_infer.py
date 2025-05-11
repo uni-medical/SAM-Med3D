@@ -307,7 +307,7 @@ def read_data_from_npz(npz_file):
     return imgs, spacing, all_clicks, prev_pred
 
 
-def create_gt_arr(shape, point, category_index, square_size=5):
+def create_gt_arr(shape, point, category_index, square_size=20):
     # Create an empty array with the same shape as the input array
     gt_array = np.zeros(shape)
     
