@@ -1,4 +1,6 @@
 data/*
+test_data/kidney_right/AMOS/pred
+test_data/test_train
 ckpt/*
 results/*
 work_dir/*
