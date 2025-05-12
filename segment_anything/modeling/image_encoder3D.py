@@ -61,6 +61,8 @@ class ImageEncoderViT3D(nn.Module):
         rel_pos_zero_init: bool = True,
         window_size: int = 0,
         global_attn_indexes: Tuple[int, ...] = (),
+        pos_dim : int = 3,
+        atten_dim : int = 3,
     ) -> None:
         """
         Args:
@@ -82,6 +84,8 @@ class ImageEncoderViT3D(nn.Module):
         """
         super().__init__()
         self.img_size = img_size
+        self.pos_dim = pos_dim
+        self.atten_dim = atten_dim
 
         self.patch_embed = PatchEmbed3D(
             kernel_size=(patch_size, patch_size, patch_size),
@@ -93,9 +97,14 @@ class ImageEncoderViT3D(nn.Module):
         self.pos_embed: Optional[nn.Parameter] = None
         if use_abs_pos:
             # Initialize absolute positional embedding with pretrain image size.
-            self.pos_embed = nn.Parameter(
-                torch.zeros(1, img_size // patch_size, img_size // patch_size, img_size // patch_size, embed_dim)
-            )
+            if self.pos_dim == 3:
+                self.pos_embed = nn.Parameter(
+                    torch.zeros(1, img_size // patch_size, img_size // patch_size, img_size // patch_size, embed_dim)
+                )
+            if self.pos_dim == 2:
+                self.pos_embed = nn.Parameter(
+                    torch.zeros(1, img_size // patch_size, img_size // patch_size, embed_dim)
+                )
 
         self.blocks = nn.ModuleList()
         for i in range(depth):
@@ -110,6 +119,7 @@ class ImageEncoderViT3D(nn.Module):
                 rel_pos_zero_init=rel_pos_zero_init,
                 window_size=window_size if i not in global_attn_indexes else 0,
                 input_size=(img_size // patch_size, img_size // patch_size, img_size // patch_size),
+                atten_dim=self.atten_dim,
             )
             self.blocks.append(block)
 
@@ -134,17 +144,17 @@ class ImageEncoderViT3D(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # input_size = [1,1,256,256,256]
-        # import IPython; IPython.embed()
+        # input_size = [1,1,128,128,128]
         x = self.patch_embed(x)
-        # x = [1,16,16,16,768]
-        # import pdb; pdb.set_trace()
         if self.pos_embed is not None:
-            x = x + self.pos_embed
-
+            if self.pos_dim == 3:
+                x = x + self.pos_embed
+            if self.pos_dim == 2:
+                x = x + self.pos_embed.repeat(1, x.size(1), 1, 1, 1)
+ 
+        # intermediate_size = [1,8,8,8,768]
         for blk in self.blocks:
             x = blk(x)
-        # x = [1,16,16,16,768]
         x = self.neck(x.permute(0, 4, 1, 2, 3))
 
         # output_size = [1,256,16,16,16]
@@ -166,6 +176,7 @@ class Block3D(nn.Module):
         rel_pos_zero_init: bool = True,
         window_size: int = 0,
         input_size: Optional[Tuple[int, int, int]] = None,
+        atten_dim = 3,
     ) -> None:
         """
         Args:
@@ -191,25 +202,28 @@ class Block3D(nn.Module):
             use_rel_pos=use_rel_pos,
             rel_pos_zero_init=rel_pos_zero_init,
             input_size=input_size if window_size == 0 else (window_size, window_size, window_size),
+            pos_dim=atten_dim, # use 2d/3d pos enc for 2d/3d atten
         )
 
         self.norm2 = norm_layer(dim)
         self.mlp = MLPBlock(embedding_dim=dim, mlp_dim=int(dim * mlp_ratio), act=act_layer)
 
-        self.window_size = window_size
+        self.window_sizes = [window_size, window_size, window_size]
+        if atten_dim == 2:
+            self.window_sizes[-1] = 1
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         shortcut = x
         x = self.norm1(x)
         # Window partition
-        if self.window_size > 0:
-            D, H, W = x.shape[1], x.shape[2], x.shape[3]
-            x, pad_dhw = window_partition3D(x, self.window_size)
+        D, H, W = x.shape[1], x.shape[2], x.shape[3]
+        if self.window_sizes[0] > 0:
+            x, pad_dhw = window_partition3D(x, self.window_sizes)
 
-        x = self.attn(x)
+        x = self.attn(x)        
         # Reverse window partition
-        if self.window_size > 0:
-            x = window_unpartition3D(x, self.window_size, pad_dhw, (D, H, W))
+        if self.window_sizes[0] > 0:
+            x = window_unpartition3D(x, self.window_sizes, pad_dhw, (D, H, W))
 
         x = shortcut + x
         x = x + self.mlp(self.norm2(x))
@@ -228,6 +242,7 @@ class Attention(nn.Module):
         use_rel_pos: bool = False,
         rel_pos_zero_init: bool = True,
         input_size: Optional[Tuple[int, int, int]] = None,
+        pos_dim = 3
     ) -> None:
         """
         Args:
@@ -243,6 +258,7 @@ class Attention(nn.Module):
         self.num_heads = num_heads
         head_dim = dim // num_heads
         self.scale = head_dim**-0.5
+        self.pos_dim = pos_dim
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.proj = nn.Linear(dim, dim)
@@ -266,8 +282,8 @@ class Attention(nn.Module):
 
         attn = (q * self.scale) @ k.transpose(-2, -1)
 
-        if self.use_rel_pos:
-            attn = add_decomposed_rel_pos(attn, q, self.rel_pos_d, self.rel_pos_h, self.rel_pos_w, (D, H, W), (D, H, W))
+        if self.use_rel_pos and self.pos_dim==3:
+            attn = add_decomposed_rel_pos(attn, q, self.rel_pos_d, self.rel_pos_h, self.rel_pos_w, (D, H, W), (D, H, W), pos_dim=3)
 
         attn = attn.softmax(dim=-1)
         x = (attn @ v).view(B, self.num_heads, D, H, W, -1).permute(0, 2, 3, 4, 1, 5).reshape(B, D, H, W, -1)
@@ -276,7 +292,7 @@ class Attention(nn.Module):
         return x
 
 
-def window_partition3D(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, Tuple[int, int, int]]:
+def window_partition3D(x: torch.Tensor, window_sizes: list) -> Tuple[torch.Tensor, Tuple[int, int, int]]:
     """
     Partition into non-overlapping windows with padding if needed.
     Args:
@@ -289,21 +305,29 @@ def window_partition3D(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor,
     """
     B, D, H, W, C = x.shape
 
-    pad_d = (window_size - D % window_size) % window_size
-    pad_h = (window_size - H % window_size) % window_size
-    pad_w = (window_size - W % window_size) % window_size
+    pad_d = (window_sizes[0] - D % window_sizes[0]) % window_sizes[0]
+    pad_h = (window_sizes[1] - H % window_sizes[1]) % window_sizes[1]
+    pad_w = (window_sizes[2] - W % window_sizes[2]) % window_sizes[2]
     
     if pad_h > 0 or pad_w > 0 or pad_d > 0:
         x = F.pad(x, (0, 0, 0, pad_w, 0, pad_h, 0, pad_d))
     Hp, Wp, Dp = H + pad_h, W + pad_w, D + pad_d
 
-    x = x.view(B, Dp // window_size, window_size, Hp // window_size, window_size, Wp // window_size, window_size, C)
-    windows = x.permute(0, 1, 3, 5, 2, 4, 6, 7).contiguous().view(-1, window_size, window_size, window_size, C)
+    x = x.view(B, 
+               Dp // window_sizes[0], window_sizes[0], 
+               Hp // window_sizes[1], window_sizes[1], 
+               Wp // window_sizes[2], window_sizes[2], 
+               C)
+    windows = x.permute(0, 1, 3, 5, 2, 4, 6, 7).contiguous().view(-1, 
+                                                                  window_sizes[0], 
+                                                                  window_sizes[1], 
+                                                                  window_sizes[2], 
+                                                                  C)
     return windows, (Dp, Hp, Wp)
 
 
 def window_unpartition3D(
-    windows: torch.Tensor, window_size: int, pad_dhw: Tuple[int, int, int], dhw: Tuple[int, int, int]
+    windows: torch.Tensor, window_sizes: list, pad_dhw: Tuple[int, int, int], dhw: Tuple[int, int, int]
 ) -> torch.Tensor:
     """
     Window unpartition into original sequences and removing padding.
@@ -318,8 +342,8 @@ def window_unpartition3D(
     """
     Dp, Hp, Wp = pad_dhw
     D, H, W = dhw
-    B = windows.shape[0] // (Dp * Hp * Wp // window_size // window_size // window_size)
-    x = windows.view(B, Dp // window_size, Hp // window_size, Wp // window_size, window_size, window_size, window_size, -1)
+    B = windows.shape[0] // (Dp * Hp * Wp // window_sizes[0] // window_sizes[1] // window_sizes[2])
+    x = windows.view(B, Dp // window_sizes[0], Hp // window_sizes[1], Wp // window_sizes[2], window_sizes[0], window_sizes[1], window_sizes[2], -1)
     x = x.permute(0, 1, 4, 2, 5, 3, 6, 7).contiguous().view(B, Dp, Hp, Wp, -1)
 
     if Hp > H or Wp > W or Dp > D:
@@ -368,6 +392,7 @@ def add_decomposed_rel_pos(
     rel_pos_w: torch.Tensor,
     q_size: Tuple[int, int, int],
     k_size: Tuple[int, int, int],
+    pos_dim = 3,
 ) -> torch.Tensor:
     """
     Calculate decomposed Relative Positional Embeddings from :paper:`mvitv2`.
@@ -394,10 +419,10 @@ def add_decomposed_rel_pos(
     r_q = q.reshape(B, q_d, q_h, q_w, dim)
 
     rel_d = torch.einsum("bdhwc,dkc->bdhwk", r_q, Rd)
+    if pos_dim == 2:
+        rel_d = torch.zeros_like(rel_d)
     rel_h = torch.einsum("bdhwc,hkc->bdhwk", r_q, Rh)
     rel_w = torch.einsum("bdhwc,wkc->bdhwk", r_q, Rw)
-    
-
     
     attn = (
         attn.view(B, q_d, q_h, q_w, k_d, k_h, k_w) + rel_d[:, :, :, :, None, None] + rel_h[:, :, :, None, :, None] + rel_w[:, :, :,None,None, :]

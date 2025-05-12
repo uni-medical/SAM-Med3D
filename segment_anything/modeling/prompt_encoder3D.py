@@ -34,6 +34,7 @@ class PromptEncoder3D(nn.Module):
         input_image_size: Tuple[int, int, int],
         mask_in_chans: int,
         activation: Type[nn.Module] = nn.GELU,
+        pos_dim : int = 3,
     ) -> None:
         """
         Encodes prompts for input to SAM's mask decoder.
@@ -53,7 +54,9 @@ class PromptEncoder3D(nn.Module):
         self.embed_dim = embed_dim
         self.input_image_size = input_image_size
         self.image_embedding_size = image_embedding_size
-        self.pe_layer = PositionEmbeddingRandom3D(embed_dim // 3)
+        self.pos_dim = pos_dim
+        # todo: 2d pos for prompt
+        self.pe_layer = PositionEmbeddingRandom(embed_dim // 3, pos_dim=pos_dim)
 
         self.num_point_embeddings: int = 2  # pos/neg point
         point_embeddings = [nn.Embedding(1, embed_dim) for i in range(self.num_point_embeddings)]
@@ -181,50 +184,141 @@ class PromptEncoder3D(nn.Module):
         return sparse_embeddings, dense_embeddings
 
 
-class PositionEmbeddingRandom3D(nn.Module):
+class PositionEmbeddingRandom(nn.Module):
     """
     Positional encoding using random spatial frequencies.
+    Supports 2D or 3D encoding based on pos_dim.
     """
 
-    def __init__(self, num_pos_feats: int = 64, scale: Optional[float] = None) -> None:
+    def __init__(self, num_pos_feats: int = 64, scale: Optional[float] = None, pos_dim: int = 3) -> None:
+        """
+        Args:
+            num_pos_feats (int): Number of random frequencies per dimension.
+                                 The output feature dimension will be 3 * num_pos_feats.
+            scale (Optional[float]): Scaling factor for the random frequencies.
+            pos_dim (int): Dimensionality of the positional encoding (2 for 2D, 3 for 3D).
+                           Input grid/coords are assumed to be 3D, but PE is applied
+                           only to the first pos_dim coordinates.
+        """
         super().__init__()
         if scale is None or scale <= 0.0:
             scale = 1.0
+
+        if pos_dim not in [2, 3]:
+            raise ValueError(f"pos_dim must be 2 or 3, but got {pos_dim}")
+        self.pos_dim = pos_dim
+        # print(f"create {pos_dim}D pe")
+        # The Gaussian matrix shape depends on the dimensionality of the position encoding
         self.register_buffer(
             "positional_encoding_gaussian_matrix",
-            scale * torch.randn((3, num_pos_feats)),
+            scale * torch.randn((self.pos_dim, num_pos_feats)),
         )
-
+        
     def _pe_encoding(self, coords: torch.Tensor) -> torch.Tensor:
-        """Positionally encode points that are normalized to [0,1]."""
-        # assuming coords are in [0, 1]^2 square and have d_1 x ... x d_n x 2 shape
-        coords = 2 * coords - 1
+        """
+        Positionally encode points.
+        Input coords are assumed to be normalized to [0, 1]^self.pos_dim
+        and have shape d_1 x ... x d_n x self.pos_dim or B x N x self.pos_dim.
+        Outputs shape d_1 x ... x d_n x (3*num_pos_feats) or B x N x (3*num_pos_feats).
+        """
+        # assuming coords are in [0, 1]^pos_dim
+        coords = 2 * coords - 1  # Normalize to [-1, 1]
+
+        # Apply random projection
+        # Input shape: ... x self.pos_dim
+        # Matrix shape: self.pos_dim x num_pos_feats
+        # Output shape: ... x num_pos_feats
         coords = coords @ self.positional_encoding_gaussian_matrix
+
+        # Apply sin and cos
         coords = 2 * np.pi * coords
-        # outputs d_1 x ... x d_n x C shape
+        
+        # outputs shape ... x (3 * num_pos_feats)
+        # Note: The original code concatenates sin, cos, and sin again.
+        # This results in 3*num_pos_feats features per point.
         return torch.cat([torch.sin(coords), torch.cos(coords), torch.sin(coords)], dim=-1)
 
     def forward(self, size: Tuple[int, int, int]) -> torch.Tensor:
-        """Generate positional encoding for a grid of the specified size."""
-        x, y, z = size
+        """
+        Generate positional encoding for a grid of the specified size.
+        The output PE will have shape (3*num_pos_feats) x X x Y x Z.
+        If pos_dim is 2, the PE will vary only across X and Y dimensions.
+        """
+        # size is (X, Y, Z)
+        x_size, y_size, z_size = size
         device: Any = self.positional_encoding_gaussian_matrix.device
-        grid = torch.ones((x, y, z), device=device, dtype=torch.float32)
-        y_embed = grid.cumsum(dim=0) - 0.5
-        x_embed = grid.cumsum(dim=1) - 0.5
-        z_embed = grid.cumsum(dim=2) - 0.5
-        y_embed = y_embed / y
-        x_embed = x_embed / x
-        z_embed = z_embed / z
 
-        pe = self._pe_encoding(torch.stack([x_embed, y_embed, z_embed], dim=-1))
-        return pe.permute(3, 0, 1, 2)  # C x X x Y x Z
+        # Create grid coordinates for all 3 dimensions, normalized to [0, 1]
+        # We use cumsum on a tensor of ones, then subtract 0.5 for pixel centers,
+        # and finally normalize by the dimension size.
+        x_embed = (torch.linspace(0.5, x_size - 0.5, x_size, device=device) / x_size).unsqueeze(0).unsqueeze(0).repeat(z_size, y_size, 1).permute(2, 1, 0)
+        y_embed = (torch.linspace(0.5, y_size - 0.5, y_size, device=device) / y_size).unsqueeze(0).unsqueeze(2).repeat(z_size, 1, x_size).permute(2, 1, 0)
+        z_embed = (torch.linspace(0.5, z_size - 0.5, z_size, device=device) / z_size).unsqueeze(1).unsqueeze(2).repeat(1, y_size, x_size).permute(2, 1, 0)
+
+        # Stack the coordinates. Shape: X x Y x Z x 3
+        coords_3d = torch.stack([x_embed, y_embed, z_embed], dim=-1)
+
+        # Select the first pos_dim coordinates for encoding
+        # If pos_dim is 2, we take X and Y (columns 0 and 1)
+        # If pos_dim is 3, we take X, Y, and Z (columns 0, 1, and 2)
+        coords_to_encode = coords_3d[:, :, :, :self.pos_dim] # Shape: X x Y x Z x self.pos_dim
+
+        # Apply positional encoding
+        pe = self._pe_encoding(coords_to_encode) # Shape: X x Y x Z x (3*num_pos_feats)
+
+        # Permute to get the channel dimension first
+        # Shape: (3*num_pos_feats) x X x Y x Z
+        return pe.permute(3, 0, 1, 2)
 
     def forward_with_coords(
         self, coords_input: torch.Tensor, image_size: Tuple[int, int, int]
     ) -> torch.Tensor:
-        """Positionally encode points that are not normalized to [0,1]."""
-        coords = coords_input.clone()
-        coords[:, :, 0] = coords[:, :, 0] / image_size[0]
-        coords[:, :, 1] = coords[:, :, 1] / image_size[1]
-        coords[:, :, 2] = coords[:, :, 2] / image_size[2]
-        return self._pe_encoding(coords.to(torch.float))  # B x N x C
+        """
+        Positionally encode points that are not normalized to [0,1].
+        Input coords_input shape: B x N x 3 (or ... x 3)
+        Output shape: B x N x (3*num_pos_feats) (or ... x (3*num_pos_feats))
+        If pos_dim is 2, only the first two coordinates (X, Y) are used for encoding.
+        """
+        # Make a copy to avoid modifying the input tensor
+        coords = coords_input.clone() # Shape: B x N x 3
+
+        # Normalize coordinates based on image_size
+        # Assuming image_size is (Width, Height, Depth) -> (X, Y, Z)
+        coords[:, :, 0] = coords[:, :, 0] / image_size[0] # Normalize X
+        coords[:, :, 1] = coords[:, :, 1] / image_size[1] # Normalize Y
+        # We normalize Z even if pos_dim is 2, but we won't use it for encoding
+        coords[:, :, 2] = coords[:, :, 2] / image_size[2] # Normalize Z
+
+        # Select the first pos_dim coordinates for encoding
+        # If pos_dim is 2, we take X and Y (columns 0 and 1)
+        # If pos_dim is 3, we take X, Y, and Z (columns 0, 1, and 2)
+        coords_to_encode = coords[:, :, :self.pos_dim].to(torch.float) # Shape: B x N x self.pos_dim
+
+        # Apply positional encoding
+        return self._pe_encoding(coords_to_encode) # Shape: B x N x (3*num_pos_feats)
+
+if __name__ == '__main__':
+    # Example with 3D encoding (default)
+    pe_layer_3d = PositionEmbeddingRandom(num_pos_feats=64, pos_dim=3)
+    grid_size_3d = (32, 32, 16) # X, Y, Z
+    pe_3d = pe_layer_3d(grid_size_3d)
+    print(f"3D PE grid shape: {pe_3d.shape}") # Expected: (3*64) x 32 x 32 x 16
+
+    coords_3d_input = torch.tensor([[[10.5, 5.2, 8.1], [25.1, 15.9, 1.3]]], dtype=torch.float32) # Batch=1, N=2 points
+    image_size_3d = (32, 32, 16)
+    pe_3d_coords = pe_layer_3d.forward_with_coords(coords_3d_input, image_size_3d)
+    print(f"3D PE coords shape: {pe_3d_coords.shape}") # Expected: 1 x 2 x (3*64)
+
+    # Example with 2D encoding
+    pe_layer_2d = PositionEmbeddingRandom(num_pos_feats=64, pos_dim=2)
+    grid_size_2d = (32, 32, 16) # Still input as 3D size
+    pe_2d = pe_layer_2d(grid_size_2d)
+    print(f"\n2D PE grid shape (on 3D grid): {pe_2d.shape}") # Expected: (3*64) x 32 x 32 x 16
+                                                           # PE varies over X, Y, constant over Z
+
+    coords_2d_input = torch.tensor([[[10.5, 5.2, 8.1], [25.1, 15.9, 1.3]]], dtype=torch.float32) # Batch=1, N=2 points
+    image_size_2d = (32, 32, 16)
+    pe_2d_coords = pe_layer_2d.forward_with_coords(coords_2d_input, image_size_2d)
+    print(f"2D PE coords shape (using first 2 coords): {pe_2d_coords.shape}") # Expected: 1 x 2 x (3*64)
+    # Notice that even though the input coordinates have a Z component (8.1 and 1.3),
+    # only the X (10.5, 25.1) and Y (5.2, 15.9) are used for the 2D encoding when pos_dim=2.

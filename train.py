@@ -88,8 +88,8 @@ def get_dataloaders(args):
         train_sampler = None
         shuffle = True
 
-    #train_dataloader = tio.SubjectsLoader(
-    train_dataloader = Union_Dataloader(
+    # train_dataloader = Union_Dataloader(
+    train_dataloader = tio.SubjectsLoader(
         dataset=train_dataset,
         sampler=train_sampler,
         batch_size=args.batch_size, 
@@ -317,9 +317,9 @@ class BaseTrainer:
 
                     prev_masks, loss = self.interaction(sam_model, image_embedding, gt3D, num_clicks=11)                
 
-                epoch_loss += loss.item()
+                epoch_loss += loss.detach().item()
                 epoch_dice += self.get_dice_score(prev_masks,gt3D) 
-                cur_loss = loss.item()
+                cur_loss = loss.detach().item()
                 
                 loss /= self.args.accumulation_steps
                 

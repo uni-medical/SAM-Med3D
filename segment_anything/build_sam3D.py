@@ -10,59 +10,6 @@ from functools import partial
 
 from .modeling import ImageEncoderViT3D, MaskDecoder3D, PromptEncoder3D, Sam3D
 
-def build_sam3D_vit_h(checkpoint=None):
-    return _build_sam3D(
-        encoder_embed_dim=1280,
-        encoder_depth=32,
-        encoder_num_heads=16,
-        encoder_global_attn_indexes=[7, 15, 23, 31],
-        checkpoint=checkpoint,
-    )
-
-
-build_sam3D = build_sam3D_vit_h
-
-
-def build_sam3D_vit_l(checkpoint=None):
-    return _build_sam3D(
-        encoder_embed_dim=1024,
-        encoder_depth=24,
-        encoder_num_heads=16,
-        encoder_global_attn_indexes=[5, 11, 17, 23],
-        checkpoint=checkpoint,
-    )
-
-
-def build_sam3D_vit_b(checkpoint=None):
-    return _build_sam3D(
-        # encoder_embed_dim=768,
-        encoder_embed_dim=384,
-        encoder_depth=12,
-        encoder_num_heads=12,
-        encoder_global_attn_indexes=[2, 5, 8, 11],
-        checkpoint=checkpoint,
-    )
-
-def build_sam3D_vit_b_ori(checkpoint=None):
-    return _build_sam3D_ori(
-        encoder_embed_dim=768,
-        encoder_depth=12,
-        encoder_num_heads=12,
-        encoder_global_attn_indexes=[2, 5, 8, 11],
-        checkpoint=checkpoint,
-    )
-
-
-sam_model_registry3D = {
-    "default": build_sam3D_vit_h,
-    "vit_h": build_sam3D_vit_h,
-    "vit_l": build_sam3D_vit_l,
-    "vit_b": build_sam3D_vit_b,
-    "vit_b_ori": build_sam3D_vit_b_ori,
-}
-
-
-
 def _build_sam3D(
     encoder_embed_dim,
     encoder_depth,
@@ -118,6 +65,8 @@ def _build_sam3D_ori(
     encoder_num_heads,
     encoder_global_attn_indexes,
     checkpoint=None,
+    pos_dim=3,
+    atten_dim=3,
 ):
     prompt_embed_dim = 384
     image_size = 128
@@ -137,12 +86,15 @@ def _build_sam3D_ori(
             global_attn_indexes=encoder_global_attn_indexes,
             window_size=14,
             out_chans=prompt_embed_dim,
+            pos_dim=pos_dim,
+            atten_dim=atten_dim,
         ),
         prompt_encoder=PromptEncoder3D(
             embed_dim=prompt_embed_dim,
             image_embedding_size=(image_embedding_size, image_embedding_size, image_embedding_size),
             input_image_size=(image_size, image_size, image_size),
             mask_in_chans=16,
+            pos_dim=pos_dim,
         ),
         mask_decoder=MaskDecoder3D(
             num_multimask_outputs=3,
@@ -159,3 +111,68 @@ def _build_sam3D_ori(
             state_dict = torch.load(f)
         sam.load_state_dict(state_dict)
     return sam
+
+def build_sam3D_vit_b(checkpoint=None):
+    return _build_sam3D(
+        # encoder_embed_dim=768,
+        encoder_embed_dim=384,
+        encoder_depth=12,
+        encoder_num_heads=12,
+        encoder_global_attn_indexes=[2, 5, 8, 11],
+        checkpoint=checkpoint,
+    )
+
+def build_sam3D_vit_b_ori(checkpoint=None):
+    return _build_sam3D_ori(
+        encoder_embed_dim=768,
+        encoder_depth=12,
+        encoder_num_heads=12,
+        encoder_global_attn_indexes=[2, 5, 8, 11],
+        checkpoint=checkpoint,
+    )
+
+def build_sam3D_vit_b_pe2d(checkpoint=None):
+    return _build_sam3D_ori(
+        encoder_embed_dim=768,
+        encoder_depth=12,
+        encoder_num_heads=12,
+        encoder_global_attn_indexes=[2, 5, 8, 11],
+        checkpoint=checkpoint,
+        pos_dim=2,
+    )
+
+def build_sam3D_vit_b_pe2d_att2d(checkpoint=None):
+    return _build_sam3D_ori(
+        encoder_embed_dim=768,
+        encoder_depth=12,
+        encoder_num_heads=12,
+        encoder_global_attn_indexes=[2, 5, 8, 11],
+        checkpoint=checkpoint,
+        pos_dim=2,
+        atten_dim=2,
+    )
+
+def build_sam3D_vit_b_att2d(checkpoint=None):
+    return _build_sam3D_ori(
+        encoder_embed_dim=768,
+        encoder_depth=12,
+        encoder_num_heads=12,
+        encoder_global_attn_indexes=[2, 5, 8, 11],
+        checkpoint=checkpoint,
+        atten_dim=2,
+    )
+
+sam_model_registry3D = {
+    "default": build_sam3D_vit_b_ori,
+    "vit_b_ori": build_sam3D_vit_b_ori,
+    "vit_b_pe2d": build_sam3D_vit_b_pe2d,
+    "vit_b_att2d": build_sam3D_vit_b_att2d,
+    "vit_b_pe2d_att2d": build_sam3D_vit_b_pe2d_att2d,
+}
+
+
+if __name__ == "__main__":
+    model = sam_model_registry3D['vit_b_pe2d_att2d']()
+    in_tensor = torch.rand(1, 1, 128, 128, 128)
+    out_tensor = model.image_encoder(in_tensor)
+    print(out_tensor.shape)

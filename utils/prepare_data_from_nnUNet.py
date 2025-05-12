@@ -15,6 +15,13 @@ import nibabel as nib
 from tqdm import tqdm
 import torchio as tio
 
+dataset_root = "./data"
+dataset_list = [
+    'ct_AMOS',
+]
+
+target_dir = "./test_data/test_train"
+
 def resample_nii(input_path: str, output_path: str, target_spacing: tuple = (1.5, 1.5, 1.5), n=None, reference_image=None, mode="linear"):
     """
     Resample a nii.gz file to a specified spacing using torchio.
@@ -50,14 +57,6 @@ def resample_nii(input_path: str, output_path: str, target_spacing: tuple = (1.5
     
     save_image.save(output_path)
 
-dataset_root = "./data"
-dataset_list = [
-    'AMOS_val',
-]
-
-target_dir = "./data/medical_preprocessed"
-
-
 for dataset in dataset_list:
     dataset_dir = osp.join(dataset_root, dataset)
     meta_info = json.load(open(osp.join(dataset_dir, "dataset.json")))
@@ -78,7 +77,8 @@ for dataset in dataset_list:
         os.makedirs(target_gt_dir, exist_ok=True)
         for item in tqdm(meta_info["training"], desc=f"{dataset_name}-{cls_name}"):
             img, gt = item["image"], item["label"]
-            img = osp.join(dataset_dir, img.replace(".nii.gz", "_0000.nii.gz"))
+            img = osp.join(dataset_dir, img)
+            # img = osp.join(dataset_dir, img.replace(".nii.gz", "_0000.nii.gz"))
             gt = osp.join(dataset_dir, gt)
             resample_img = osp.join(resample_dir, osp.basename(img))
             if(not osp.exists(resample_img)):
@@ -95,7 +95,7 @@ for dataset in dataset_list:
             gt_arr[gt_arr != idx] = 0
             gt_arr[gt_arr != 0] = 1
             volume = gt_arr.sum()*spacing_voxel
-            if(volume<10): 
+            if(volume<1000): 
                 print("skip", target_img_path)
                 continue
 
