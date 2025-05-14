@@ -336,6 +336,9 @@ class SegFM3D_Dataset(Dataset):
         label = npz_file['gts'][None]
 
         unique_nonzero_labels = np.unique(label)[1:]
+        if len(unique_nonzero_labels) <= 1:
+            print("No non-zero labels found in the resampled ground truth of", self.image_paths[index], unique_nonzero_labels, label)
+            return self.__getitem__(np.random.randint(self.__len__()))
         selected_label_idx = np.random.randint(len(unique_nonzero_labels))
         label[label != unique_nonzero_labels[selected_label_idx]] = 0
 
