@@ -5,6 +5,8 @@ work_dir/*
 */__pycache__/*
 __pycache__/*
 *.pyc
+test_data/*
+data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
