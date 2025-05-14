@@ -331,7 +331,12 @@ class SegFM3D_Dataset(Dataset):
         return len(self.label_paths)
 
     def __getitem__(self, index):
-        npz_file = np.load(self.image_paths[index])
+        try:
+            npz_file = np.load(self.image_paths[index])
+        except:
+            print("Could not load", self.image_paths[index])
+            return self.__getitem__(np.random.randint(self.__len__()))
+
         image = npz_file['imgs'][None] # 3D -> 4D
         label = npz_file['gts'][None]
 
@@ -339,8 +344,11 @@ class SegFM3D_Dataset(Dataset):
         if len(unique_nonzero_labels) <= 0:
             print("No non-zero labels found in the resampled ground truth of", self.image_paths[index], unique_nonzero_labels)
             return self.__getitem__(np.random.randint(self.__len__()))
+        
+        # randomly select one label
         selected_label_idx = np.random.randint(len(unique_nonzero_labels))
         label[label != unique_nonzero_labels[selected_label_idx]] = 0
+        label[label == unique_nonzero_labels[selected_label_idx]] = 1
 
         subject = tio.Subject(
             image=tio.ScalarImage(tensor=torch.tensor(image, dtype=torch.float32)),
