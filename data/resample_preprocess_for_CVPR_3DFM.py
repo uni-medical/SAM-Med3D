@@ -32,32 +32,26 @@ def preprocess(npz_path, output_dir):
     # print(fname, "->", out_path)
 
     # start to preprocess data
-    img, gt, spacing = read_data_from_npz(npz_path)
-    img, gt = resample(img, gt, spacing)
-    # print("orig:", img.shape, gt.shape, spacing)
-    # img, _ = pad_and_resize(img)
-    # gt, factors = pad_and_resize(gt)
-    # scales = [factors[2], factors[0], factors[1]]
-    # spacing = [s / sc for s, sc in zip(spacing, scales)]
-    # print("curr:", img.shape, gt.shape, spacing)
+    try:
+        img, gt, spacing = read_data_from_npz(npz_path)
+        img, gt = resample(img, gt, spacing)
+        out_path = osp.join(out_dir, f"{fname}.npz")
 
-    out_path = osp.join(out_dir, f"{fname}.npz")
-    np.savez(out_path, imgs=img, gts=gt, spacing=spacing)
-    # for cls_idx in np.unique(gt):
-    #     out_path = osp.join(out_dir, f"{fname}_cls{cls_idx}.npz")
-    #     cls_gt = np.zeros_like(gt)
-    #     if cls_idx == 0:
-    #         continue
-    #     cls_gt[gt == cls_idx] = 1
-    #     np.savez(out_path, imgs=img, gts=cls_gt, spacing=spacing)
-
+        unique_labels = np.unique(gt)
+        if len(unique_labels) <= 1:
+            print("No non-zero labels found in the resampled ground truth of", npz_path, unique_labels, gt)
+            return
+        np.savez(out_path, imgs=img, gts=gt, spacing=spacing)
+    except:
+        print(f"Error processing {npz_path}")
+        return
 
 if __name__ == "__main__":
-    dataet_dir = "./3D_train_npz_random_10percent_16G"
-    output_dir = "./resampled_3D_train_npz_random_10percent_16G"
+    dataet_dir = "./3D_train_npz_all"
+    output_dir = "./resampled_3D_train_npz_all"
     os.makedirs(output_dir, exist_ok=True)
 
-    all_npz_path = glob(osp.join(dataet_dir, "*", "*", "*.npz"))[:20]
+    all_npz_path = glob(osp.join(dataet_dir, "*", "*", "*.npz"))
 
     num_workers=4
     preprocess_tr = partial(preprocess, output_dir=output_dir)
