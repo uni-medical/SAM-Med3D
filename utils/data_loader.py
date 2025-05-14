@@ -335,6 +335,10 @@ class SegFM3D_Dataset(Dataset):
         image = npz_file['imgs'][None] # 3D -> 4D
         label = npz_file['gts'][None]
 
+        unique_nonzero_labels = np.unique(label)[1:]
+        selected_label_idx = np.random.randint(len(unique_nonzero_labels))
+        label[label != unique_nonzero_labels[selected_label_idx]] = 0
+
         subject = tio.Subject(
             image=tio.ScalarImage(tensor=torch.tensor(image, dtype=torch.float32)),
             label=tio.LabelMap(tensor=torch.tensor(label, dtype=torch.float32)),

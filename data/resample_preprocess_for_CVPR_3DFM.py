@@ -41,13 +41,15 @@ def preprocess(npz_path, output_dir):
     # spacing = [s / sc for s, sc in zip(spacing, scales)]
     # print("curr:", img.shape, gt.shape, spacing)
 
-    for idx, cls_idx in enumerate(np.unique(gt)):
-        out_path = osp.join(out_dir, f"{fname}_cls{cls_idx}.npz")
-        cls_gt = np.zeros_like(gt)
-        if cls_idx == 0:
-            continue
-        cls_gt[gt == cls_idx] = 1
-        np.savez(out_path, imgs=img, gts=cls_gt, spacing=spacing)
+    out_path = osp.join(out_dir, f"{fname}.npz")
+    np.savez(out_path, imgs=img, gts=gt, spacing=spacing)
+    # for cls_idx in np.unique(gt):
+    #     out_path = osp.join(out_dir, f"{fname}_cls{cls_idx}.npz")
+    #     cls_gt = np.zeros_like(gt)
+    #     if cls_idx == 0:
+    #         continue
+    #     cls_gt[gt == cls_idx] = 1
+    #     np.savez(out_path, imgs=img, gts=cls_gt, spacing=spacing)
 
 
 if __name__ == "__main__":
