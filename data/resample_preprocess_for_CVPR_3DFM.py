@@ -51,13 +51,13 @@ def preprocess(npz_path, output_dir):
 
 
 if __name__ == "__main__":
-    dataet_dir = "./biomed_baseline/3D_train_npz_random_10percent_16G"
-    output_dir = "./biomed_baseline_pre2/3D_train_npz_random_10percent_16G"
+    dataet_dir = "./3D_train_npz_random_10percent_16G"
+    output_dir = "./resampled_3D_train_npz_random_10percent_16G"
     os.makedirs(output_dir, exist_ok=True)
 
-    all_npz_path = glob(osp.join(dataet_dir, "*", "*", "*.npz"))#[:20]
+    all_npz_path = glob(osp.join(dataet_dir, "*", "*", "*.npz"))[:20]
 
-    num_workers=48
+    num_workers=4
     preprocess_tr = partial(preprocess, output_dir=output_dir)
     with mp.Pool(num_workers) as p:
         with tqdm(total=len(all_npz_path)) as pbar:
