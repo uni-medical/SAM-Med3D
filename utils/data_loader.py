@@ -360,6 +360,7 @@ class SegFM3D_Dataset(Dataset):
                 subject = self.transform(subject)
             except:
                 print("fail to load data:", self.image_paths[index])
+                return self.__getitem__(np.random.randint(self.__len__()))
 
         if subject.label.data.sum() <= self.threshold:
             return self.__getitem__(np.random.randint(self.__len__()))
