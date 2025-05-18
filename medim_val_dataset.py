@@ -265,19 +265,16 @@ if __name__ == "__main__":
 
     test_data_list = [
         dict(
-            img_dir="./test_data/Seg_Exps/ACDC/ACDC_test_cases",
-            gt_dir="./test_data/Seg_Exps/ACDC/ACDC_test_gts",
-            out_dir="./test_data/Seg_Exps/ACDC_test_SAM_Med3D",
+            img_dir = "./data/ct_AMOS/imagesVal",
+            gt_dir  = "./data/ct_AMOS/labelsVal",
+            out_dir = "./data/ct_AMOS/pred_sammed3d",
         ),
     ]
     for test_data in test_data_list:
         gt_fname_list = sorted(glob(osp.join(test_data["gt_dir"], "*.nii.gz")))
         for gt_fname in tqdm(gt_fname_list):
-            # print(gt_fname)
             case_name = osp.basename(gt_fname).replace(".nii.gz", "")
-            img_path = osp.join(test_data["img_dir"], f"{case_name}_0000.nii.gz")
-            if test_data["img_dir"].endswith("CT"):
-                img_path = osp.join(test_data["img_dir"], f"{case_name}_0001.nii.gz")
+            img_path = osp.join(test_data["img_dir"], f"{case_name}.nii.gz")
             gt_path = gt_fname
             out_path = osp.join(test_data["out_dir"], f"{case_name}.nii.gz")
             validate_paired_img_gt(img_path, gt_path, out_path)

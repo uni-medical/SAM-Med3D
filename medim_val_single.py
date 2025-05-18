@@ -11,7 +11,6 @@ import SimpleITK as sitk
 from tqdm import tqdm
 from glob import glob
 
-
 def random_sample_next_click(prev_mask, gt_mask):
     """
     Randomly sample one click from ground-truth mask and previous seg mask
@@ -241,7 +240,6 @@ def get_category_list_and_zero_mask(gt_path):
 def validate_paired_img_gt(img_path, gt_path, output_path):
     os.makedirs(osp.dirname(output_path), exist_ok=True)
     exist_categories, final_pred = get_category_list_and_zero_mask(gt_path)
-    # for category_index in tqdm(exist_categories, desc=f"infer {len(exist_categories)} categories"):
     for category_index in exist_categories:
         roi_image, roi_label, meta_info = data_preprocess(img_path, gt_path, category_index=category_index)
         
@@ -251,22 +249,21 @@ def validate_paired_img_gt(img_path, gt_path, output_path):
         final_pred[cls_pred!=0] = category_index
 
     save_numpy_to_nifti(final_pred, output_path, meta_info)
-    # print("result saved to", output_path)
 
 
 if __name__ == "__main__":
     ''' 1. prepare the pre-trained model with local path or huggingface url '''
     ckpt_path = "https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth"
     # or you can use a local path like: 
-    # ckpt_path = "./ckpt/sam_med3d_turbo.pth"
+    ckpt_path = "./ckpt/sam_med3d_turbo_bbox_cvpr.pth"
     model = medim.create_model("SAM-Med3D",
                                pretrained=True,
                                checkpoint_path=ckpt_path)
 
     ''' 2. read and pre-process your input data '''
-    img_path = "./test_data/Seg_Exps/ACDC/ACDC_test_cases/patient101_frame01_0000.nii.gz"
-    gt_path =  "./test_data/Seg_Exps/ACDC/ACDC_test_gts/patient101_frame01.nii.gz"
-    out_path = "./test_data/Seg_Exps/ACDC/ACDC_test_SAM_Med3d/patient101_frame01.nii.gz"
+    img_path = "./test_data/amos_val_toy_data/imagesVa/amos_0013.nii.gz"
+    gt_path =  "./test_data/amos_val_toy_data/labelsVa/amos_0013.nii.gz"
+    out_path = "./test_data/amos_val_toy_data/pred_cvpr/amos_0013.nii.gz"
     
     ''' 3. infer with the pre-trained SAM-Med3D model '''
     validate_paired_img_gt(img_path, gt_path, out_path)

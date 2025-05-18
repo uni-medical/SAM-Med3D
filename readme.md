@@ -1,7 +1,8 @@
 # SAM-Med3D \[[Paper](https://arxiv.org/abs/2310.15161)] \[[Suppl](https://github.com/uni-medical/SAM-Med3D/blob/main/paper/SAM_Med3D_ECCV_Supplementary.pdf)\] \[[Data](https://drive.google.com/file/d/1F7lRWM5mdEKSRQtvJ8ExEyNrWIEkXc-G/view?usp=drive_link)\]
 [![x](https://img.shields.io/badge/cs.CV-2310.15161-b31b1b?logo=arxiv&logoColor=red)](https://arxiv.org/abs/2310.15161)
 [![x](https://img.shields.io/badge/WeChat-Group-green?logo=wechat)](https://github.com/uni-medical/SAM-Med3D/tree/main?tab=readme-ov-file#-discussion-group)
-
+[![x](https://img.shields.io/badge/Python-3.10-A7D8FF)]()
+[![x](https://img.shields.io/badge/PyTorch-2.6-FCD299)]()
 
 The official repo of "SAM-Med3D: Towards General-purpose Segmentation Models for Volumetric Medical Images".
 
@@ -32,16 +33,16 @@ we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exc
 ### 1. Quick Start for SAM-Med3D
 > **Note:**
 > **Ground-truth labels are required** to generate prompt points.
-> If you want to test an image without ground-truth, please generate a fake ground-truth with the target region for prompting annotated.
+> If you want to test an image without ground-truth, please generate a fake ground-truth with the target region for prompt annotated.
 
 First, set up your environment with the following commands:
 ```
 conda create --name sammed3d python=3.10 
 conda activate sammed3d
-pip install light-the-torch && ltt install torch
-pip install torchio opencv-python-headless matplotlib prefetch_generator monai edt medim
+pip install uv
+uv pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0
+uv pip install torchio opencv-python-headless matplotlib prefetch_generator monai edt surface-distance medim
 ```
-(if encounter OMP issue in Win, please refer to [link](https://github.com/uni-medical/SAM-Med3D/issues/103))
 
 Then, use [`medim_val_single.py`](https://github.com/uni-medical/SAM-Med3D/blob/main/medim_val_single.py) to test the model:
 ```
@@ -151,8 +152,8 @@ The key options are listed below:
 - work_dir: results folder for log and ckpt
 - multi_gpu: use multiple GPU with DDP
 - gpu_ids: set gpu ids used for training
+- batch_size: batch size for each GPU
 - num_epochs: number of epoches
-- batch_size: batch size for training
 - lr: learning rate for training
 
 
