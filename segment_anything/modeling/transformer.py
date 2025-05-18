@@ -4,16 +4,17 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-import torch
-from torch import Tensor, nn
-
 import math
 from typing import Tuple, Type
+
+import torch
+from torch import Tensor, nn
 
 from .common import MLPBlock
 
 
 class TwoWayTransformer(nn.Module):
+
     def __init__(
         self,
         depth: int,
@@ -51,12 +52,11 @@ class TwoWayTransformer(nn.Module):
                     activation=activation,
                     attention_downsample_rate=attention_downsample_rate,
                     skip_first_layer_pe=(i == 0),
-                )
-            )
+                ))
 
-        self.final_attn_token_to_image = Attention(
-            embedding_dim, num_heads, downsample_rate=attention_downsample_rate
-        )
+        self.final_attn_token_to_image = Attention(embedding_dim,
+                                                   num_heads,
+                                                   downsample_rate=attention_downsample_rate)
         self.norm_final_attn = nn.LayerNorm(embedding_dim)
 
     def forward(
@@ -107,7 +107,8 @@ class TwoWayTransformer(nn.Module):
 
 
 class TwoWayAttentionBlock(nn.Module):
-    def     __init__(
+
+    def __init__(
         self,
         embedding_dim: int,
         num_heads: int,
@@ -133,24 +134,23 @@ class TwoWayAttentionBlock(nn.Module):
         self.self_attn = Attention(embedding_dim, num_heads)
         self.norm1 = nn.LayerNorm(embedding_dim)
 
-        self.cross_attn_token_to_image = Attention(
-            embedding_dim, num_heads, downsample_rate=attention_downsample_rate
-        )
+        self.cross_attn_token_to_image = Attention(embedding_dim,
+                                                   num_heads,
+                                                   downsample_rate=attention_downsample_rate)
         self.norm2 = nn.LayerNorm(embedding_dim)
 
         self.mlp = MLPBlock(embedding_dim, mlp_dim, activation)
         self.norm3 = nn.LayerNorm(embedding_dim)
 
         self.norm4 = nn.LayerNorm(embedding_dim)
-        self.cross_attn_image_to_token = Attention(
-            embedding_dim, num_heads, downsample_rate=attention_downsample_rate
-        )
+        self.cross_attn_image_to_token = Attention(embedding_dim,
+                                                   num_heads,
+                                                   downsample_rate=attention_downsample_rate)
 
         self.skip_first_layer_pe = skip_first_layer_pe
 
-    def forward(
-        self, queries: Tensor, keys: Tensor, query_pe: Tensor, key_pe: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+    def forward(self, queries: Tensor, keys: Tensor, query_pe: Tensor,
+                key_pe: Tensor) -> Tuple[Tensor, Tensor]:
         # Self attention block
         if self.skip_first_layer_pe:
             queries = self.self_attn(q=queries, k=queries, v=queries)
@@ -217,9 +217,9 @@ class Attention(nn.Module):
 
     def forward(self, q: Tensor, k: Tensor, v: Tensor) -> Tensor:
         # Input projections
-        q = self.q_proj(q.to(self.q_proj.weight.dtype)) #todo
-        k = self.k_proj(k.to(self.k_proj.weight.dtype)) #todo
-        v = self.v_proj(v.to(self.v_proj.weight.dtype)) #todo
+        q = self.q_proj(q.to(self.q_proj.weight.dtype))  # todo
+        k = self.k_proj(k.to(self.k_proj.weight.dtype))  # todo
+        v = self.v_proj(v.to(self.v_proj.weight.dtype))  # todo
 
         # q = self.q_proj(q)
         # k = self.k_proj(k)

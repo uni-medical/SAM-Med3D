@@ -1,27 +1,39 @@
 # batch_evaluation.py
 
-import os
-import glob
-import numpy as np
 import argparse
-from tqdm import tqdm
-from collections import defaultdict
-import json
 import datetime
-from val_utils import compute_metrics
+import glob
+import json
+import os
+from collections import defaultdict
+
+import numpy as np
+from metric_utils import compute_metrics
+from tqdm import tqdm
+
 
 def main():
-    parser = argparse.ArgumentParser(description='Batch computation of evaluation metrics for segmentation predictions.')
-    parser.add_argument('--gt_dir', type=str, required=True,
+    parser = argparse.ArgumentParser(
+        description='Batch computation of evaluation metrics for segmentation predictions.')
+    parser.add_argument('--gt_dir',
+                        type=str,
+                        required=True,
                         help='Directory containing the ground truth NIfTI files (.nii.gz).')
-    parser.add_argument('--pred_dir', type=str, required=True,
+    parser.add_argument('--pred_dir',
+                        type=str,
+                        required=True,
                         help='Directory containing the prediction NIfTI files (.nii.gz).')
-    parser.add_argument('--output_json', type=str, default=None,
+    parser.add_argument('--output_json',
+                        type=str,
+                        default=None,
                         help='Optional path to save the detailed results in a JSON file.')
-    parser.add_argument('--classes', type=int, nargs='*', default=None,
-                        help='Optional list of class indices to compute metrics for (e.g., --classes 1 2 3). '
-                             'If not provided, all non-zero classes from the first GT file will be used.')
-
+    parser.add_argument(
+        '--classes',
+        type=int,
+        nargs='*',
+        default=None,
+        help='Optional list of class indices to compute metrics for (e.g., --classes 1 2 3). '
+        'If not provided, all non-zero classes from the first GT file will be used.')
 
     args = parser.parse_args()
 
@@ -47,7 +59,8 @@ def main():
     # --- Data structures to store results ---
     # Stores per-file, per-class results: {filename: {class_id: {'dsc': value, 'nsd': value}}}
     all_file_results = {}
-    # Stores flattened lists of all results per class: {class_id: {'dsc': [v1, v2, ...], 'nsd': [v1, v2, ...]}}
+    # Stores flattened lists of all results per class: {class_id: {'dsc': [v1,
+    # v2, ...], 'nsd': [v1, v2, ...]}}
     aggregated_class_results = defaultdict(lambda: defaultdict(list))
     processed_files_count = 0
     errors = []
@@ -65,7 +78,7 @@ def main():
             print(error_msg)
             errors.append(error_msg)
             missing_gt_count += 1
-            continue # Skip this file pair
+            continue  # Skip this file pair
 
         try:
             # Compute metrics for the current file pair
@@ -73,28 +86,29 @@ def main():
             metrics_per_class = compute_metrics(gt_file, pred_file, classes=specified_classes)
 
             if not metrics_per_class:
-                 error_msg = f"Warning: No metrics computed for {filename}. Check for errors in compute_metrics."
-                 print(error_msg)
-                 errors.append(error_msg)
-                 continue # Skip if compute_metrics returned empty (indicating failure or no classes processed)
-
+                error_msg = f"Warning: No metrics computed for {filename}. Check for errors in compute_metrics."
+                print(error_msg)
+                errors.append(error_msg)
+                # Skip if compute_metrics returned empty (indicating failure or no classes
+                # processed)
+                continue
 
             # Store results for this file
             all_file_results[filename] = metrics_per_class
 
             # Aggregate results for overall calculation
             for class_id_str, metrics in metrics_per_class.items():
-                class_id = int(class_id_str) # Convert string key back to int
+                class_id = int(class_id_str)  # Convert string key back to int
                 aggregated_class_results[class_id]['dsc'].append(metrics.get('dsc', np.nan))
                 aggregated_class_results[class_id]['nsd'].append(metrics.get('nsd', np.nan))
 
             processed_files_count += 1
 
         except FileNotFoundError as e:
-             # This should ideally be caught by the os.path.exists check, but as a safeguard
-             error_msg = f"Fatal Error (should not happen): File not found during compute_metrics for {filename}: {e}"
-             print(error_msg)
-             errors.append(error_msg)
+            # This should ideally be caught by the os.path.exists check, but as a safeguard
+            error_msg = f"Fatal Error (should not happen): File not found during compute_metrics for {filename}: {e}"
+            print(error_msg)
+            errors.append(error_msg)
         except Exception as e:
             error_msg = f"Error processing file pair {filename}: {str(e)}"
             print(error_msg)
@@ -130,21 +144,21 @@ def main():
         print(f"Class {class_id}:")
         # Check if mean is NaN (happens if all values for a class were NaN)
         if np.isnan(mean_dsc):
-             print(f"  DSC: N/A (all values were NaN)")
+            print("  DSC: N/A (all values were NaN)")
         else:
-             print(f"  DSC: {mean_dsc:.4f} ± {std_dsc:.4f}")
+            print(f"  DSC: {mean_dsc:.4f} ± {std_dsc:.4f}")
 
         if np.isnan(mean_nsd):
-             print(f"  NSD: N/A (all values were NaN)")
+            print("  NSD: N/A (all values were NaN)")
         else:
-             print(f"  NSD: {mean_nsd:.4f} ± {std_nsd:.4f}")
+            print(f"  NSD: {mean_nsd:.4f} ± {std_nsd:.4f}")
 
         per_class_summary[class_id] = {
             'DSC_mean': float(mean_dsc) if not np.isnan(mean_dsc) else None,
             'DSC_std': float(std_dsc) if not np.isnan(std_dsc) else None,
             'NSD_mean': float(mean_nsd) if not np.isnan(mean_nsd) else None,
             'NSD_std': float(std_nsd) if not np.isnan(std_nsd) else None,
-            'count': len(dsc_values) # How many files contributed to this class
+            'count': len(dsc_values)  # How many files contributed to this class
         }
 
     print("====================================================")
@@ -152,13 +166,20 @@ def main():
     # --- Calculate and print overall results ---
     print("\n======== Overall Evaluation Results (Mean ± Std) ========")
     # Flatten all non-NaN DSC and NSD values across all classes
-    all_dsc_flat = [v for class_data in aggregated_class_results.values() for v in class_data['dsc'] if not np.isnan(v)]
-    all_nsd_flat = [v for class_data in aggregated_class_results.values() for v in class_data['nsd'] if not np.isnan(v)]
+    all_dsc_flat = [
+        v for class_data in aggregated_class_results.values() for v in class_data['dsc']
+        if not np.isnan(v)
+    ]
+    all_nsd_flat = [
+        v for class_data in aggregated_class_results.values() for v in class_data['nsd']
+        if not np.isnan(v)
+    ]
 
     overall_summary = {}
     if all_dsc_flat:
         overall_mean_dsc = np.mean(all_dsc_flat)
-        overall_std_dsc = np.std(all_dsc_flat) # Note: using std here, nanstd not applicable to list of non-nans
+        overall_std_dsc = np.std(
+            all_dsc_flat)  # Note: using std here, nanstd not applicable to list of non-nans
         print(f"Overall DSC: {overall_mean_dsc:.4f} ± {overall_std_dsc:.4f}")
         overall_summary['DSC_overall_mean'] = float(overall_mean_dsc)
         overall_summary['DSC_overall_std'] = float(overall_std_dsc)
@@ -166,7 +187,6 @@ def main():
         print("Overall DSC: N/A (no valid values)")
         overall_summary['DSC_overall_mean'] = None
         overall_summary['DSC_overall_std'] = None
-
 
     if all_nsd_flat:
         overall_mean_nsd = np.mean(all_nsd_flat)
@@ -179,9 +199,7 @@ def main():
         overall_summary['NSD_overall_mean'] = None
         overall_summary['NSD_overall_std'] = None
 
-
     print("======================================================")
-
 
     # --- Save results to JSON if requested ---
     if output_json_path:

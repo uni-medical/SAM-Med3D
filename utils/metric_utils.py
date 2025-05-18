@@ -1,19 +1,25 @@
 import os
+from collections import defaultdict
+from typing import Any, Dict, List, Optional
+
 import nibabel as nib
 import numpy as np
-from typing import List, Optional, Dict, Any
-from surface_distance import compute_surface_distances, compute_surface_dice_at_tolerance
-from collections import defaultdict
+from surface_distance import (compute_surface_dice_at_tolerance,
+                              compute_surface_distances)
+
 
 def compute_dice_coefficient(mask1, mask2):
     intersection = np.sum(mask1 * mask2)
     sum_masks = np.sum(mask1) + np.sum(mask2)
     if sum_masks == 0:
-        return np.nan # Or 1.0 depending on convention for empty masks
+        return np.nan  # Or 1.0 depending on convention for empty masks
     return (2.0 * intersection) / sum_masks
 
 
-def compute_metrics(gt_path: str, pred_path: str, classes: Optional[List[int]] = None, metrics='all') -> Dict[str, Dict[str, float]]:
+def compute_metrics(gt_path: str,
+                    pred_path: str,
+                    classes: Optional[List[int]] = None,
+                    metrics='all') -> Dict[str, Dict[str, float]]:
     """
     Computes evaluation metrics (DSC and NSD) between a ground truth and a prediction NIfTI file.
 
@@ -47,13 +53,13 @@ def compute_metrics(gt_path: str, pred_path: str, classes: Optional[List[int]] =
         gt_data = gt_nii.get_fdata().astype(np.uint8)
         pred_data = pred_nii.get_fdata().astype(np.uint8)
 
-        case_spacing = gt_nii.header.get_zooms()[:3] # Use only the first 3 dimensions for spacing
+        case_spacing = gt_nii.header.get_zooms()[:3]  # Use only the first 3 dimensions for spacing
 
         # Determine classes to process
         if classes is None:
             determined_classes = sorted(np.unique(gt_data).tolist())
             if 0 in determined_classes:
-                determined_classes.remove(0) # Assume 0 is background
+                determined_classes.remove(0)  # Assume 0 is background
             if not determined_classes:
                 print(f"Warning: No non-zero classes found in ground truth file: {gt_path}")
                 return results
@@ -61,8 +67,8 @@ def compute_metrics(gt_path: str, pred_path: str, classes: Optional[List[int]] =
             determined_classes = sorted(classes)
 
         if not determined_classes:
-             print(f"Warning: No classes specified or found to compute metrics for.")
-             return results
+            print(f"Warning: No classes specified or found to compute metrics for.")
+            return results
 
         for i in determined_classes:
             organ_i_gt = (gt_data == i)
@@ -80,14 +86,16 @@ def compute_metrics(gt_path: str, pred_path: str, classes: Optional[List[int]] =
                     dsc_i = compute_dice_coefficient(organ_i_gt, organ_i_pred)
 
                     # Calculate NSD (with tolerance 1, as per original script)
-                    surface_distances = compute_surface_distances(organ_i_gt, organ_i_pred, case_spacing)
+                    surface_distances = compute_surface_distances(organ_i_gt, organ_i_pred,
+                                                                  case_spacing)
                     nsd_i = compute_surface_dice_at_tolerance(surface_distances, 1.0)
 
                 except Exception as metric_error:
-                    print(f"Warning: Error computing metrics for class {i} in {pred_path}: {metric_error}")
+                    print(
+                        f"Warning: Error computing metrics for class {i} in {pred_path}: {metric_error}"
+                    )
                     dsc_i = np.nan
                     nsd_i = np.nan
-
 
             results[str(i)] = {'dsc': float(dsc_i), 'nsd': float(nsd_i)}
 

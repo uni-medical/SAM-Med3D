@@ -4,35 +4,36 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Optional, Tuple, Type
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from typing import Optional, Tuple, Type
 
 from .common import LayerNorm2d, MLPBlock
 
 
 # This class and its supporting functions below lightly adapted from the ViTDet backbone available at: https://github.com/facebookresearch/detectron2/blob/main/detectron2/modeling/backbone/vit.py # noqa
 class ImageEncoderViT(nn.Module):
+
     def __init__(
-        self,
-        img_size: int = 1024,
-        patch_size: int = 16,
-        in_chans: int = 3,
-        embed_dim: int = 768,
-        depth: int = 12,
-        num_heads: int = 12,
-        mlp_ratio: float = 4.0,
-        out_chans: int = 256,
-        qkv_bias: bool = True,
-        norm_layer: Type[nn.Module] = nn.LayerNorm,
-        act_layer: Type[nn.Module] = nn.GELU,
-        use_abs_pos: bool = True,
-        use_rel_pos: bool = False,
-        rel_pos_zero_init: bool = True,
-        window_size: int = 0,
-        global_attn_indexes: Tuple[int, ...] = (),
+            self,
+            img_size: int = 1024,
+            patch_size: int = 16,
+            in_chans: int = 3,
+            embed_dim: int = 768,
+            depth: int = 12,
+            num_heads: int = 12,
+            mlp_ratio: float = 4.0,
+            out_chans: int = 256,
+            qkv_bias: bool = True,
+            norm_layer: Type[nn.Module] = nn.LayerNorm,
+            act_layer: Type[nn.Module] = nn.GELU,
+            use_abs_pos: bool = True,
+            use_rel_pos: bool = False,
+            rel_pos_zero_init: bool = True,
+            window_size: int = 0,
+            global_attn_indexes: Tuple[int, ...] = (),
     ) -> None:
         """
         Args:
@@ -66,9 +67,7 @@ class ImageEncoderViT(nn.Module):
         if use_abs_pos:
             # Initialize absolute positional embedding with pretrain image size.
             self.pos_embed = nn.Parameter(
-                torch.zeros(1, img_size // patch_size, img_size // patch_size, embed_dim)
-            )
-
+                torch.zeros(1, img_size // patch_size, img_size // patch_size, embed_dim))
 
         self.blocks = nn.ModuleList()
         for i in range(depth):
@@ -111,7 +110,6 @@ class ImageEncoderViT(nn.Module):
 
         for blk in self.blocks:
             x = blk(x)
-
 
         x = self.neck(x.permute(0, 3, 1, 2))
 
@@ -217,8 +215,8 @@ class Attention(nn.Module):
         self.use_rel_pos = use_rel_pos
         if self.use_rel_pos:
             assert (
-                input_size is not None
-            ), "Input size must be provided if using relative positional encoding."
+                input_size
+                is not None), "Input size must be provided if using relative positional encoding."
             # initialize relative positional embeddings
             self.rel_pos_h = nn.Parameter(torch.zeros(2 * input_size[0] - 1, head_dim))
             self.rel_pos_w = nn.Parameter(torch.zeros(2 * input_size[1] - 1, head_dim))
@@ -236,7 +234,8 @@ class Attention(nn.Module):
             attn = add_decomposed_rel_pos(attn, q, self.rel_pos_h, self.rel_pos_w, (H, W), (H, W))
 
         attn = attn.softmax(dim=-1)
-        x = (attn @ v).view(B, self.num_heads, H, W, -1).permute(0, 2, 3, 1, 4).reshape(B, H, W, -1)
+        x = (attn @ v).view(B, self.num_heads, H, W, -1).permute(0, 2, 3, 1,
+                                                                 4).reshape(B, H, W, -1)
         x = self.proj(x)
 
         return x
@@ -266,9 +265,8 @@ def window_partition(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, T
     return windows, (Hp, Wp)
 
 
-def window_unpartition(
-    windows: torch.Tensor, window_size: int, pad_hw: Tuple[int, int], hw: Tuple[int, int]
-) -> torch.Tensor:
+def window_unpartition(windows: torch.Tensor, window_size: int, pad_hw: Tuple[int, int],
+                       hw: Tuple[int, int]) -> torch.Tensor:
     """
     Window unpartition into original sequences and removing padding.
     Args:
@@ -355,14 +353,13 @@ def add_decomposed_rel_pos(
     r_q = q.reshape(B, q_h, q_w, dim)
 
     # r_q = r_q.to(torch.float) #todo   opt_level="O2" 模式下需要注释
-    r_q = r_q.to(Rh.dtype) #todo
-    
+    r_q = r_q.to(Rh.dtype)  # todo
+
     rel_h = torch.einsum("bhwc,hkc->bhwk", r_q, Rh)
     rel_w = torch.einsum("bhwc,wkc->bhwk", r_q, Rw)
 
-    attn = (
-        attn.view(B, q_h, q_w, k_h, k_w) + rel_h[:, :, :, :, None] + rel_w[:, :, :, None, :]
-    ).view(B, q_h * q_w, k_h * k_w)
+    attn = (attn.view(B, q_h, q_w, k_h, k_w) + rel_h[:, :, :, :, None] +
+            rel_w[:, :, :, None, :]).view(B, q_h * q_w, k_h * k_w)
 
     return attn
 
@@ -373,12 +370,12 @@ class PatchEmbed(nn.Module):
     """
 
     def __init__(
-        self,
-        kernel_size: Tuple[int, int] = (16, 16),
-        stride: Tuple[int, int] = (16, 16),
-        padding: Tuple[int, int] = (0, 0),
-        in_chans: int = 3,
-        embed_dim: int = 768,
+            self,
+            kernel_size: Tuple[int, int] = (16, 16),
+            stride: Tuple[int, int] = (16, 16),
+            padding: Tuple[int, int] = (0, 0),
+            in_chans: int = 3,
+            embed_dim: int = 768,
     ) -> None:
         """
         Args:
@@ -390,9 +387,11 @@ class PatchEmbed(nn.Module):
         """
         super().__init__()
 
-        self.proj = nn.Conv2d(
-            in_chans, embed_dim, kernel_size=kernel_size, stride=stride, padding=padding
-        )
+        self.proj = nn.Conv2d(in_chans,
+                              embed_dim,
+                              kernel_size=kernel_size,
+                              stride=stride,
+                              padding=padding)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.proj(x)

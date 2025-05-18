@@ -4,11 +4,13 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+import math
+from typing import List, Tuple, Type
+
 import torch
-from torch import nn
+from torch import Tensor, nn
 from torch.nn import functional as F
 
-from typing import List, Tuple, Type
 # from .transformer import TwoWayTransformer
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
@@ -16,14 +18,9 @@ from typing import List, Tuple, Type
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-import torch
-from torch import Tensor, nn
-
-import math
-from typing import Tuple, Type
-
 
 class MLPBlock3D(nn.Module):
+
     def __init__(
         self,
         embedding_dim: int,
@@ -38,7 +35,9 @@ class MLPBlock3D(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.lin2(self.act(self.lin1(x)))
 
+
 class TwoWayTransformer3D(nn.Module):
+
     def __init__(
         self,
         depth: int,
@@ -76,12 +75,11 @@ class TwoWayTransformer3D(nn.Module):
                     activation=activation,
                     attention_downsample_rate=attention_downsample_rate,
                     skip_first_layer_pe=(i == 0),
-                )
-            )
+                ))
 
-        self.final_attn_token_to_image = Attention(
-            embedding_dim, num_heads, downsample_rate=attention_downsample_rate
-        )
+        self.final_attn_token_to_image = Attention(embedding_dim,
+                                                   num_heads,
+                                                   downsample_rate=attention_downsample_rate)
         self.norm_final_attn = nn.LayerNorm(embedding_dim)
 
     def forward(
@@ -132,6 +130,7 @@ class TwoWayTransformer3D(nn.Module):
 
 
 class TwoWayAttentionBlock3D(nn.Module):
+
     def __init__(
         self,
         embedding_dim: int,
@@ -158,24 +157,23 @@ class TwoWayAttentionBlock3D(nn.Module):
         self.self_attn = Attention(embedding_dim, num_heads)
         self.norm1 = nn.LayerNorm(embedding_dim)
 
-        self.cross_attn_token_to_image = Attention(
-            embedding_dim, num_heads, downsample_rate=attention_downsample_rate
-        )
+        self.cross_attn_token_to_image = Attention(embedding_dim,
+                                                   num_heads,
+                                                   downsample_rate=attention_downsample_rate)
         self.norm2 = nn.LayerNorm(embedding_dim)
 
         self.mlp = MLPBlock3D(embedding_dim, mlp_dim, activation)
         self.norm3 = nn.LayerNorm(embedding_dim)
 
         self.norm4 = nn.LayerNorm(embedding_dim)
-        self.cross_attn_image_to_token = Attention(
-            embedding_dim, num_heads, downsample_rate=attention_downsample_rate
-        )
+        self.cross_attn_image_to_token = Attention(embedding_dim,
+                                                   num_heads,
+                                                   downsample_rate=attention_downsample_rate)
 
         self.skip_first_layer_pe = skip_first_layer_pe
 
-    def forward(
-        self, queries: Tensor, keys: Tensor, query_pe: Tensor, key_pe: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+    def forward(self, queries: Tensor, keys: Tensor, query_pe: Tensor,
+                key_pe: Tensor) -> Tuple[Tensor, Tensor]:
         # Self attention block
         if self.skip_first_layer_pe:
             queries = self.self_attn(q=queries, k=queries, v=queries)
@@ -265,8 +263,8 @@ class Attention(nn.Module):
         return out
 
 
-
 class LayerNorm3d(nn.Module):
+
     def __init__(self, num_channels: int, eps: float = 1e-6) -> None:
         super().__init__()
         self.weight = nn.Parameter(torch.ones(num_channels))
@@ -282,6 +280,7 @@ class LayerNorm3d(nn.Module):
 
 
 class MaskDecoder3D(nn.Module):
+
     def __init__(
         self,
         *,
@@ -312,11 +311,11 @@ class MaskDecoder3D(nn.Module):
         self.transformer_dim = transformer_dim
         # self.transformer = transformer
         self.transformer = TwoWayTransformer3D(
-                depth=2,
-                embedding_dim=self.transformer_dim,
-                mlp_dim=2048,
-                num_heads=8,
-            )
+            depth=2,
+            embedding_dim=self.transformer_dim,
+            mlp_dim=2048,
+            num_heads=8,
+        )
 
         self.num_multimask_outputs = num_multimask_outputs
 
@@ -328,19 +327,17 @@ class MaskDecoder3D(nn.Module):
             nn.ConvTranspose3d(transformer_dim, transformer_dim // 4, kernel_size=2, stride=2),
             LayerNorm3d(transformer_dim // 4),
             activation(),
-            nn.ConvTranspose3d(transformer_dim // 4, transformer_dim // 8, kernel_size=2, stride=2),
+            nn.ConvTranspose3d(transformer_dim // 4, transformer_dim // 8, kernel_size=2,
+                               stride=2),
             activation(),
         )
-        self.output_hypernetworks_mlps = nn.ModuleList(
-            [
-                MLP(transformer_dim, transformer_dim, transformer_dim // 8, 3)
-                for i in range(self.num_mask_tokens)
-            ]
-        )
+        self.output_hypernetworks_mlps = nn.ModuleList([
+            MLP(transformer_dim, transformer_dim, transformer_dim // 8, 3)
+            for i in range(self.num_mask_tokens)
+        ])
 
-        self.iou_prediction_head = MLP(
-            transformer_dim, iou_head_hidden_dim, self.num_mask_tokens, iou_head_depth
-        )
+        self.iou_prediction_head = MLP(transformer_dim, iou_head_hidden_dim, self.num_mask_tokens,
+                                       iou_head_depth)
 
     def forward(
         self,
@@ -412,7 +409,7 @@ class MaskDecoder3D(nn.Module):
         # import IPython; IPython.embed()
         hs, src = self.transformer(src, pos_src, tokens)
         iou_token_out = hs[:, 0, :]
-        mask_tokens_out = hs[:, 1 : (1 + self.num_mask_tokens), :]
+        mask_tokens_out = hs[:, 1:(1 + self.num_mask_tokens), :]
 
         # Upscale mask embeddings and predict masks using the mask tokens
         src = src.transpose(1, 2).view(b, c, x, y, z)
@@ -433,6 +430,7 @@ class MaskDecoder3D(nn.Module):
 # Lightly adapted from
 # https://github.com/facebookresearch/MaskFormer/blob/main/mask_former/modeling/transformer/transformer_predictor.py # noqa
 class MLP(nn.Module):
+
     def __init__(
         self,
         input_dim: int,
@@ -445,8 +443,7 @@ class MLP(nn.Module):
         self.num_layers = num_layers
         h = [hidden_dim] * (num_layers - 1)
         self.layers = nn.ModuleList(
-            nn.Linear(n, k) for n, k in zip([input_dim] + h, h + [output_dim])
-        )
+            nn.Linear(n, k) for n, k in zip([input_dim] + h, h + [output_dim]))
         self.sigmoid_output = sigmoid_output
 
     def forward(self, x):
@@ -455,4 +452,3 @@ class MLP(nn.Module):
         if self.sigmoid_output:
             x = F.sigmoid(x)
         return x
-
