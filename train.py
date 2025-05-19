@@ -179,9 +179,9 @@ class BaseTrainer:
         if os.path.exists(ckp_path):
             if self.args.multi_gpu:
                 dist.barrier()
-                last_ckpt = torch.load(ckp_path, map_location=self.args.device)
+                last_ckpt = torch.load(ckp_path, map_location=self.args.device, weights_only=False)
             else:
-                last_ckpt = torch.load(ckp_path, map_location=self.args.device)
+                last_ckpt = torch.load(ckp_path, map_location=self.args.device, weights_only=False)
 
         if last_ckpt:
             if (self.args.allow_partial_weight):

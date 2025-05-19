@@ -54,13 +54,12 @@ def sam_model_infer(model,
     # roi_image: (torch.Tensor) cropped image, shape [1,1,128,128,128]
     # prompt_points_and_labels: (Tuple(torch.Tensor, torch.Tensor))
     '''
+    model.eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
 
     if roi_gt is not None and (roi_gt == 0).all():
-        return torch.zeros_like(roi_image)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # print("using device", device)
-    model = model.to(device)
+        return np.zeros_like(roi_image.cpu().numpy().squeeze())
 
     with torch.no_grad():
         input_tensor = roi_image.to(device)
@@ -200,7 +199,7 @@ def read_arr_from_nifti(nii_path, get_meta_info=False):
     return arr, meta_info
 
 
-def data_preprocess(img_path, gt_path, category_index):
+def data_preprocess(img_path, gt_path, category_index, target_spacing=[1.5, 1.5, 1.5]):
     full_img, meta_info = read_arr_from_nifti(img_path, get_meta_info=True)
 
     full_gt = read_arr_from_nifti(gt_path)
@@ -211,7 +210,7 @@ def data_preprocess(img_path, gt_path, category_index):
         full_img,
         cls_gt,
         meta_info,
-        target_spacing=[t / o for o, t in zip(meta_info["spacing"], [1.5, 1.5, 1.5])])
+        target_spacing=[t / o for o, t in zip(meta_info["spacing"], target_spacing)])
     roi_image, roi_label, meta_info = get_roi_from_subject(subject, meta_info)
     return roi_image, roi_label, meta_info
 
