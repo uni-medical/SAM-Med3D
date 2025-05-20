@@ -1,16 +1,16 @@
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
-import torchio as tio
-from torchio.data.io import sitk_to_nib
-import torch
-import numpy as np
 import os
-import torch
+
+import numpy as np
 import SimpleITK as sitk
+import torch
+import torchio as tio
 from prefetch_generator import BackgroundGenerator
+from torch.utils.data import DataLoader, Dataset
+from torchio.data.io import sitk_to_nib
 
 
 class Dataset_Union_ALL(Dataset):
+
     def __init__(
         self,
         paths,
@@ -64,7 +64,7 @@ class Dataset_Union_ALL(Dataset):
         if self.transform:
             try:
                 subject = self.transform(subject)
-            except:
+            except BaseException:
                 print(self.image_paths[index])
 
         if self.pcc:
@@ -76,9 +76,7 @@ class Dataset_Union_ALL(Dataset):
                 # print(random_index)
                 crop_mask = torch.zeros_like(subject.label.data)
                 # print(crop_mask.shape)
-                crop_mask[random_index[0]][random_index[1]][random_index[2]][
-                    random_index[3]
-                ] = 1
+                crop_mask[random_index[0]][random_index[1]][random_index[2]][random_index[3]] = 1
                 subject.add_image(
                     tio.LabelMap(tensor=crop_mask, affine=subject.label.affine),
                     image_name="crop_mask",
@@ -124,14 +122,13 @@ class Dataset_Union_ALL(Dataset):
             if os.path.exists(d):
                 for name in os.listdir(d):
                     base = os.path.basename(name).split(".nii.gz")[0]
-                    label_path = os.path.join(
-                        path, f"labels{self.data_type}", f"{base}.nii.gz"
-                    )
+                    label_path = os.path.join(path, f"labels{self.data_type}", f"{base}.nii.gz")
                     self.image_paths.append(label_path.replace("labels", "images"))
                     self.label_paths.append(label_path)
 
 
 class Dataset_Union_ALL_Val(Dataset_Union_ALL):
+
     def _set_file_paths(self, paths):
         self.image_paths = []
         self.label_paths = []
@@ -146,8 +143,8 @@ class Dataset_Union_ALL_Val(Dataset_Union_ALL):
                         label_path = os.path.join(path, f"labels{dt}", f"{base}.nii.gz")
                         self.image_paths.append(label_path.replace("labels", "images"))
                         self.label_paths.append(label_path)
-        self.image_paths = self.image_paths[self.split_idx :: self.split_num]
-        self.label_paths = self.label_paths[self.split_idx :: self.split_num]
+        self.image_paths = self.image_paths[self.split_idx::self.split_num]
+        self.label_paths = self.label_paths[self.split_idx::self.split_num]
 
 
 class Dataset_Union_ALL_Infer(Dataset):
@@ -183,9 +180,7 @@ class Dataset_Union_ALL_Infer(Dataset):
 
         sitk_image_arr, _ = sitk_to_nib(sitk_image)
 
-        subject = tio.Subject(
-            image=tio.ScalarImage(tensor=sitk_image_arr),
-        )
+        subject = tio.Subject(image=tio.ScalarImage(tensor=sitk_image_arr), )
 
         if "/ct_" in self.image_paths[index]:
             subject = tio.Clamp(-1000, 1000)(subject)
@@ -193,7 +188,7 @@ class Dataset_Union_ALL_Infer(Dataset):
         if self.transform:
             try:
                 subject = self.transform(subject)
-            except:
+            except BaseException:
                 print("Could not transform", self.image_paths[index])
 
         if self.pcc:
@@ -203,9 +198,7 @@ class Dataset_Union_ALL_Infer(Dataset):
             if len(random_index) >= 1:
                 random_index = random_index[np.random.randint(0, len(random_index))]
                 crop_mask = torch.zeros_like(subject.label.data)
-                crop_mask[random_index[0]][random_index[1]][random_index[2]][
-                    random_index[3]
-                ] = 1
+                crop_mask[random_index[0]][random_index[1]][random_index[2]][random_index[3]] = 1
                 subject.add_image(
                     tio.LabelMap(tensor=crop_mask, affine=subject.label.affine),
                     image_name="crop_mask",
@@ -235,20 +228,20 @@ class Dataset_Union_ALL_Infer(Dataset):
             if os.path.exists(d):
                 for name in os.listdir(d):
                     base = os.path.basename(name).split(".nii.gz")[0]
-                    image_path = os.path.join(
-                        path, f"{self.data_type}", f"{base}.nii.gz"
-                    )
+                    image_path = os.path.join(path, f"{self.data_type}", f"{base}.nii.gz")
                     self.image_paths.append(image_path)
-                    
-        self.image_paths = self.image_paths[self.split_idx :: self.split_num]
+
+        self.image_paths = self.image_paths[self.split_idx::self.split_num]
 
 
 class Union_Dataloader(tio.SubjectsLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__())
 
 
 class Test_Single(Dataset):
+
     def __init__(self, paths, image_size=128, transform=None, threshold=500):
         self.paths = paths
 
@@ -281,7 +274,7 @@ class Test_Single(Dataset):
         if self.transform:
             try:
                 subject = self.transform(subject)
-            except:
+            except BaseException:
                 print(self.image_paths[index])
 
         if subject.label.data.sum() <= self.threshold:
@@ -303,38 +296,38 @@ class Test_Single(Dataset):
 
 if __name__ == "__main__":
     test_dataset = Dataset_Union_ALL_Infer(
-        paths=['./data/inference/heart/hearts/',],
+        paths=[
+            './data/inference/heart/hearts/',
+        ],
         data_type='infer',
         transform=tio.Compose([
             tio.ToCanonical(),
-            tio.CropOrPad(target_shape=(128,128,128)),
+            tio.CropOrPad(target_shape=(128, 128, 128)),
         ]),
         pcc=False,
         get_all_meta_info=True,
-        split_idx = 0,
-        split_num = 1,
-        )
-
-    # test_dataset = Dataset_Union_ALL_Val(
-        # paths=["./data/validation/experimental/heart/hearts"],
-        # mode="Val",
-        # transform=tio.Compose(
-            # [
-                # tio.ToCanonical(),
-                # tio.CropOrPad(target_shape=(128, 128, 128)),
-            # ]
-        # ),
-        # threshold=0,
-        # pcc=False,
-        # get_all_meta_info=True,
-    # )
-
-    test_dataloader = DataLoader(
-        dataset=test_dataset, sampler=None, batch_size=1, shuffle=True
+        split_idx=0,
+        split_num=1,
     )
 
+    # test_dataset = Dataset_Union_ALL_Val(
+    # paths=["./data/validation/experimental/heart/hearts"],
+    # mode="Val",
+    # transform=tio.Compose(
+    # [
+    # tio.ToCanonical(),
+    # tio.CropOrPad(target_shape=(128, 128, 128)),
+    # ]
+    # ),
+    # threshold=0,
+    # pcc=False,
+    # get_all_meta_info=True,
+    # )
+
+    test_dataloader = DataLoader(dataset=test_dataset, sampler=None, batch_size=1, shuffle=True)
+
     print(len(test_dataset))
-    
+
     # for i, j, n in test_dataloader:
     for i, j in test_dataloader:
         print(i.shape)

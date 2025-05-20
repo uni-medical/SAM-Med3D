@@ -1,5 +1,5 @@
 data/*
-test_data/kidney_right/AMOS/pred
+test_data/*/pred*
 test_data/test_train
 ckpt/*
 results/*
@@ -7,6 +7,7 @@ work_dir/*
 */__pycache__/*
 __pycache__/*
 *.pyc
+local*.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -4,35 +4,25 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import torch
 from torchvision.ops.boxes import batched_nms, box_area  # type: ignore
 
-from typing import Any, Dict, List, Optional, Tuple
-
 from .modeling import Sam
 from .predictor import SamPredictor
-from .utils.amg import (
-    MaskData,
-    area_from_rle,
-    batch_iterator,
-    batched_mask_to_box,
-    box_xyxy_to_xywh,
-    build_all_layer_point_grids,
-    calculate_stability_score,
-    coco_encode_rle,
-    generate_crop_boxes,
-    is_box_near_crop_edge,
-    mask_to_rle_pytorch,
-    remove_small_regions,
-    rle_to_mask,
-    uncrop_boxes_xyxy,
-    uncrop_masks,
-    uncrop_points,
-)
+from .utils.amg import (MaskData, area_from_rle, batch_iterator,
+                        batched_mask_to_box, box_xyxy_to_xywh,
+                        build_all_layer_point_grids, calculate_stability_score,
+                        coco_encode_rle, generate_crop_boxes,
+                        is_box_near_crop_edge, mask_to_rle_pytorch,
+                        remove_small_regions, rle_to_mask, uncrop_boxes_xyxy,
+                        uncrop_masks, uncrop_points)
 
 
 class SamAutomaticMaskGenerator:
+
     def __init__(
         self,
         model: Sam,
@@ -96,8 +86,7 @@ class SamAutomaticMaskGenerator:
         """
 
         assert (points_per_side is None) != (
-            point_grids is None
-        ), "Exactly one of points_per_side or point_grid must be provided."
+            point_grids is None), "Exactly one of points_per_side or point_grid must be provided."
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
                 points_per_side,
@@ -115,7 +104,8 @@ class SamAutomaticMaskGenerator:
             "coco_rle",
         ], f"Unknown output_mode {output_mode}."
         if output_mode == "coco_rle":
-            from pycocotools import mask as mask_utils  # type: ignore # noqa: F401
+            from pycocotools import \
+                mask as mask_utils  # type: ignore # noqa: F401
 
         if min_mask_region_area > 0:
             import cv2  # type: ignore # noqa: F401
@@ -196,9 +186,8 @@ class SamAutomaticMaskGenerator:
 
     def _generate_masks(self, image: np.ndarray) -> MaskData:
         orig_size = image.shape[:2]
-        crop_boxes, layer_idxs = generate_crop_boxes(
-            orig_size, self.crop_n_layers, self.crop_overlap_ratio
-        )
+        crop_boxes, layer_idxs = generate_crop_boxes(orig_size, self.crop_n_layers,
+                                                     self.crop_overlap_ratio)
 
         # Iterate over image crops
         data = MaskData()
@@ -241,7 +230,7 @@ class SamAutomaticMaskGenerator:
 
         # Generate masks for this crop in batches
         data = MaskData()
-        for (points,) in batch_iterator(self.points_per_batch, points_for_image):
+        for (points, ) in batch_iterator(self.points_per_batch, points_for_image):
             batch_data = self._process_batch(points, cropped_im_size, crop_box, orig_size)
             data.cat(batch_data)
             del batch_data
@@ -297,9 +286,9 @@ class SamAutomaticMaskGenerator:
             data.filter(keep_mask)
 
         # Calculate stability score
-        data["stability_score"] = calculate_stability_score(
-            data["masks"], self.predictor.model.mask_threshold, self.stability_score_offset
-        )
+        data["stability_score"] = calculate_stability_score(data["masks"],
+                                                            self.predictor.model.mask_threshold,
+                                                            self.stability_score_offset)
         if self.stability_score_thresh > 0.0:
             keep_mask = data["stability_score"] >= self.stability_score_thresh
             data.filter(keep_mask)
@@ -321,9 +310,8 @@ class SamAutomaticMaskGenerator:
         return data
 
     @staticmethod
-    def postprocess_small_regions(
-        mask_data: MaskData, min_area: int, nms_thresh: float
-    ) -> MaskData:
+    def postprocess_small_regions(mask_data: MaskData, min_area: int,
+                                  nms_thresh: float) -> MaskData:
         """
         Removes small disconnected regions and holes in masks, then reruns
         box NMS to remove any new duplicates.

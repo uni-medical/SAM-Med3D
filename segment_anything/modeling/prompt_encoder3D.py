@@ -4,14 +4,15 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Any, Optional, Tuple, Type
+
 import numpy as np
 import torch
 from torch import nn
 
-from typing import Any, Optional, Tuple, Type
-
 
 class LayerNorm3d(nn.Module):
+
     def __init__(self, num_channels: int, eps: float = 1e-6) -> None:
         super().__init__()
         self.weight = nn.Parameter(torch.ones(num_channels))
@@ -27,6 +28,7 @@ class LayerNorm3d(nn.Module):
 
 
 class PromptEncoder3D(nn.Module):
+
     def __init__(
         self,
         embed_dim: int,
@@ -60,7 +62,8 @@ class PromptEncoder3D(nn.Module):
         self.point_embeddings = nn.ModuleList(point_embeddings)
         self.not_a_point_embed = nn.Embedding(1, embed_dim)
 
-        self.mask_input_size = (image_embedding_size[0], image_embedding_size[1], image_embedding_size[2])
+        self.mask_input_size = (image_embedding_size[0], image_embedding_size[1],
+                                image_embedding_size[2])
         self.mask_downscaling = nn.Sequential(
             nn.Conv3d(1, mask_in_chans // 4, kernel_size=2, stride=2),
             LayerNorm3d(mask_in_chans // 4),
@@ -175,8 +178,8 @@ class PromptEncoder3D(nn.Module):
             dense_embeddings = self._embed_masks(masks)
         else:
             dense_embeddings = self.no_mask_embed.weight.reshape(1, -1, 1, 1, 1).expand(
-                bs, -1, self.image_embedding_size[0], self.image_embedding_size[1], self.image_embedding_size[2]
-            )
+                bs, -1, self.image_embedding_size[0], self.image_embedding_size[1],
+                self.image_embedding_size[2])
 
         return sparse_embeddings, dense_embeddings
 
@@ -219,9 +222,8 @@ class PositionEmbeddingRandom3D(nn.Module):
         pe = self._pe_encoding(torch.stack([x_embed, y_embed, z_embed], dim=-1))
         return pe.permute(3, 0, 1, 2)  # C x X x Y x Z
 
-    def forward_with_coords(
-        self, coords_input: torch.Tensor, image_size: Tuple[int, int, int]
-    ) -> torch.Tensor:
+    def forward_with_coords(self, coords_input: torch.Tensor,
+                            image_size: Tuple[int, int, int]) -> torch.Tensor:
         """Positionally encode points that are not normalized to [0,1]."""
         coords = coords_input.clone()
         coords[:, :, 0] = coords[:, :, 0] / image_size[0]

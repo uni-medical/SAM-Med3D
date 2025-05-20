@@ -4,11 +4,11 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Any, Dict, List, Tuple
+
 import torch
 from torch import nn
 from torch.nn import functional as F
-
-from typing import Any, Dict, List, Tuple
 
 from .image_encoder3D import ImageEncoderViT3D
 from .mask_decoder3D import MaskDecoder3D
@@ -121,13 +121,11 @@ class Sam3D(nn.Module):
                 original_size=image_record["original_size"],
             )
             masks = masks > self.mask_threshold
-            outputs.append(
-                {
-                    "masks": masks,
-                    "iou_predictions": iou_predictions,
-                    "low_res_logits": low_res_masks,
-                }
-            )
+            outputs.append({
+                "masks": masks,
+                "iou_predictions": iou_predictions,
+                "low_res_logits": low_res_masks,
+            })
         return outputs
 
     def postprocess_masks(
@@ -153,11 +151,12 @@ class Sam3D(nn.Module):
         """
         masks = F.interpolate(
             masks,
-            (self.image_encoder.img_size, self.image_encoder.img_size, self.image_encoder.img_size),
+            (self.image_encoder.img_size, self.image_encoder.img_size,
+             self.image_encoder.img_size),
             mode="bilinear",
             align_corners=False,
         )
-        masks = masks[..., : input_size[0], : input_size[1], : input_size[2]]
+        masks = masks[..., :input_size[0], :input_size[1], :input_size[2]]
         masks = F.interpolate(masks, original_size, mode="bilinear", align_corners=False)
         return masks
 
@@ -173,4 +172,3 @@ class Sam3D(nn.Module):
         padw = self.image_encoder.img_size - w
         x = F.pad(x, (0, padw, 0, padh, 0, padd))
         return x
-

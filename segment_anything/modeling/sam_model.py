@@ -1,12 +1,14 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 
+from typing import Any, Dict, List, Tuple
+
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 import torch
 from torch import nn
 from torch.nn import functional as F
-from typing import Any, Dict, List, Tuple
+
 from .image_encoder import ImageEncoderViT
 from .mask_decoder import MaskDecoder
 from .prompt_encoder import PromptEncoder
@@ -47,12 +49,13 @@ class Sam(nn.Module):
     def device(self) -> Any:
         return self.pixel_mean.device
 
-    def forward(self, batched_input: Dict[str, Any], multimask_output: bool) -> List[Dict[str, torch.Tensor]]:
+    def forward(self, batched_input: Dict[str, Any],
+                multimask_output: bool) -> List[Dict[str, torch.Tensor]]:
 
         input_images = batched_input.get("image")
         image_embeddings = self.image_encoder(input_images)
 
-        if "point_coords" in batched_input and batched_input["point_coords"] != None:
+        if "point_coords" in batched_input and batched_input["point_coords"] is not None:
             points = (batched_input["point_coords"], batched_input["point_labels"])
         else:
             points = None
@@ -78,19 +81,27 @@ class Sam(nn.Module):
         )
 
         outputs = {
-                    "masks": masks,
-                    "iou_predictions": iou_predictions,
-                    "low_res_logits": low_res_masks,
-                }
+            "masks": masks,
+            "iou_predictions": iou_predictions,
+            "low_res_logits": low_res_masks,
+        }
 
         return outputs
 
-    def postprocess_masks(self,masks: torch.Tensor, input_size: Tuple[int, ...],original_size: Tuple[int, ...],) -> torch.Tensor:
+    def postprocess_masks(
+        self,
+        masks: torch.Tensor,
+        input_size: Tuple[int, ...],
+        original_size: Tuple[int, ...],
+    ) -> torch.Tensor:
         masks = F.interpolate(
             masks,
-            (self.image_encoder.img_size, self.image_encoder.img_size), mode="bilinear", align_corners=False,)  #[1,1024,1024]
+            (self.image_encoder.img_size, self.image_encoder.img_size),
+            mode="bilinear",
+            align_corners=False,
+        )  # [1,1024,1024]
 
-        masks = masks[..., : input_size[0], : input_size[1]]
+        masks = masks[..., :input_size[0], :input_size[1]]
         masks = F.interpolate(masks, original_size, mode="bilinear", align_corners=False)
         return masks
 

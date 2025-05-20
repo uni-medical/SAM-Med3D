@@ -4,14 +4,15 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Optional, Tuple, Type
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from typing import Optional, Tuple, Type
-
 
 class MLPBlock(nn.Module):
+
     def __init__(
         self,
         embedding_dim: int,
@@ -25,8 +26,10 @@ class MLPBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.lin2(self.act(self.lin1(x)))
-    
+
+
 class LayerNorm3d(nn.Module):
+
     def __init__(self, num_channels: int, eps: float = 1e-6) -> None:
         super().__init__()
         self.weight = nn.Parameter(torch.ones(num_channels))
@@ -43,24 +46,25 @@ class LayerNorm3d(nn.Module):
 
 # This class and its supporting functions below lightly adapted from the ViTDet backbone available at: https://github.com/facebookresearch/detectron2/blob/main/detectron2/modeling/backbone/vit.py # noqa
 class ImageEncoderViT3D(nn.Module):
+
     def __init__(
-        self,
-        img_size: int = 256,
-        patch_size: int = 16,
-        in_chans: int = 1,
-        embed_dim: int = 768,
-        depth: int = 12,
-        num_heads: int = 12,
-        mlp_ratio: float = 4.0,
-        out_chans: int = 256,
-        qkv_bias: bool = True,
-        norm_layer: Type[nn.Module] = nn.LayerNorm,
-        act_layer: Type[nn.Module] = nn.GELU,
-        use_abs_pos: bool = True,
-        use_rel_pos: bool = False,
-        rel_pos_zero_init: bool = True,
-        window_size: int = 0,
-        global_attn_indexes: Tuple[int, ...] = (),
+            self,
+            img_size: int = 256,
+            patch_size: int = 16,
+            in_chans: int = 1,
+            embed_dim: int = 768,
+            depth: int = 12,
+            num_heads: int = 12,
+            mlp_ratio: float = 4.0,
+            out_chans: int = 256,
+            qkv_bias: bool = True,
+            norm_layer: Type[nn.Module] = nn.LayerNorm,
+            act_layer: Type[nn.Module] = nn.GELU,
+            use_abs_pos: bool = True,
+            use_rel_pos: bool = False,
+            rel_pos_zero_init: bool = True,
+            window_size: int = 0,
+            global_attn_indexes: Tuple[int, ...] = (),
     ) -> None:
         """
         Args:
@@ -94,8 +98,8 @@ class ImageEncoderViT3D(nn.Module):
         if use_abs_pos:
             # Initialize absolute positional embedding with pretrain image size.
             self.pos_embed = nn.Parameter(
-                torch.zeros(1, img_size // patch_size, img_size // patch_size, img_size // patch_size, embed_dim)
-            )
+                torch.zeros(1, img_size // patch_size, img_size // patch_size,
+                            img_size // patch_size, embed_dim))
 
         self.blocks = nn.ModuleList()
         for i in range(depth):
@@ -109,7 +113,8 @@ class ImageEncoderViT3D(nn.Module):
                 use_rel_pos=use_rel_pos,
                 rel_pos_zero_init=rel_pos_zero_init,
                 window_size=window_size if i not in global_attn_indexes else 0,
-                input_size=(img_size // patch_size, img_size // patch_size, img_size // patch_size),
+                input_size=(img_size // patch_size, img_size // patch_size,
+                            img_size // patch_size),
             )
             self.blocks.append(block)
 
@@ -250,8 +255,8 @@ class Attention(nn.Module):
         self.use_rel_pos = use_rel_pos
         if self.use_rel_pos:
             assert (
-                input_size is not None
-            ), "Input size must be provided if using relative positional encoding."
+                input_size
+                is not None), "Input size must be provided if using relative positional encoding."
             # initialize relative positional embeddings
             self.rel_pos_d = nn.Parameter(torch.zeros(2 * input_size[0] - 1, head_dim))
             self.rel_pos_h = nn.Parameter(torch.zeros(2 * input_size[1] - 1, head_dim))
@@ -267,16 +272,19 @@ class Attention(nn.Module):
         attn = (q * self.scale) @ k.transpose(-2, -1)
 
         if self.use_rel_pos:
-            attn = add_decomposed_rel_pos(attn, q, self.rel_pos_d, self.rel_pos_h, self.rel_pos_w, (D, H, W), (D, H, W))
+            attn = add_decomposed_rel_pos(attn, q, self.rel_pos_d, self.rel_pos_h, self.rel_pos_w,
+                                          (D, H, W), (D, H, W))
 
         attn = attn.softmax(dim=-1)
-        x = (attn @ v).view(B, self.num_heads, D, H, W, -1).permute(0, 2, 3, 4, 1, 5).reshape(B, D, H, W, -1)
+        x = (attn @ v).view(B, self.num_heads, D, H, W, -1).permute(0, 2, 3, 4, 1,
+                                                                    5).reshape(B, D, H, W, -1)
         x = self.proj(x)
 
         return x
 
 
-def window_partition3D(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, Tuple[int, int, int]]:
+def window_partition3D(x: torch.Tensor,
+                       window_size: int) -> Tuple[torch.Tensor, Tuple[int, int, int]]:
     """
     Partition into non-overlapping windows with padding if needed.
     Args:
@@ -292,19 +300,20 @@ def window_partition3D(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor,
     pad_d = (window_size - D % window_size) % window_size
     pad_h = (window_size - H % window_size) % window_size
     pad_w = (window_size - W % window_size) % window_size
-    
+
     if pad_h > 0 or pad_w > 0 or pad_d > 0:
         x = F.pad(x, (0, 0, 0, pad_w, 0, pad_h, 0, pad_d))
     Hp, Wp, Dp = H + pad_h, W + pad_w, D + pad_d
 
-    x = x.view(B, Dp // window_size, window_size, Hp // window_size, window_size, Wp // window_size, window_size, C)
-    windows = x.permute(0, 1, 3, 5, 2, 4, 6, 7).contiguous().view(-1, window_size, window_size, window_size, C)
+    x = x.view(B, Dp // window_size, window_size, Hp // window_size, window_size,
+               Wp // window_size, window_size, C)
+    windows = x.permute(0, 1, 3, 5, 2, 4, 6, 7).contiguous().view(-1, window_size, window_size,
+                                                                  window_size, C)
     return windows, (Dp, Hp, Wp)
 
 
-def window_unpartition3D(
-    windows: torch.Tensor, window_size: int, pad_dhw: Tuple[int, int, int], dhw: Tuple[int, int, int]
-) -> torch.Tensor:
+def window_unpartition3D(windows: torch.Tensor, window_size: int, pad_dhw: Tuple[int, int, int],
+                         dhw: Tuple[int, int, int]) -> torch.Tensor:
     """
     Window unpartition into original sequences and removing padding.
     Args:
@@ -319,7 +328,8 @@ def window_unpartition3D(
     Dp, Hp, Wp = pad_dhw
     D, H, W = dhw
     B = windows.shape[0] // (Dp * Hp * Wp // window_size // window_size // window_size)
-    x = windows.view(B, Dp // window_size, Hp // window_size, Wp // window_size, window_size, window_size, window_size, -1)
+    x = windows.view(B, Dp // window_size, Hp // window_size, Wp // window_size, window_size,
+                     window_size, window_size, -1)
     x = x.permute(0, 1, 4, 2, 5, 3, 6, 7).contiguous().view(B, Dp, Hp, Wp, -1)
 
     if Hp > H or Wp > W or Dp > D:
@@ -389,19 +399,17 @@ def add_decomposed_rel_pos(
     Rd = get_rel_pos(q_d, k_d, rel_pos_d)
     Rh = get_rel_pos(q_h, k_h, rel_pos_h)
     Rw = get_rel_pos(q_w, k_w, rel_pos_w)
-    
+
     B, _, dim = q.shape
     r_q = q.reshape(B, q_d, q_h, q_w, dim)
 
     rel_d = torch.einsum("bdhwc,dkc->bdhwk", r_q, Rd)
     rel_h = torch.einsum("bdhwc,hkc->bdhwk", r_q, Rh)
     rel_w = torch.einsum("bdhwc,wkc->bdhwk", r_q, Rw)
-    
 
-    
-    attn = (
-        attn.view(B, q_d, q_h, q_w, k_d, k_h, k_w) + rel_d[:, :, :, :, None, None] + rel_h[:, :, :, None, :, None] + rel_w[:, :, :,None,None, :]
-    ).view(B, q_d * q_h * q_w, k_d * k_h * k_w)
+    attn = (attn.view(B, q_d, q_h, q_w, k_d, k_h, k_w) + rel_d[:, :, :, :, None, None] +
+            rel_h[:, :, :, None, :, None] + rel_w[:, :, :, None, None, :]).view(
+                B, q_d * q_h * q_w, k_d * k_h * k_w)
 
     return attn
 
@@ -412,12 +420,12 @@ class PatchEmbed3D(nn.Module):
     """
 
     def __init__(
-        self,
-        kernel_size: Tuple[int, int] = (16, 16, 16),
-        stride: Tuple[int, int] = (16, 16, 16),
-        padding: Tuple[int, int] = (0, 0, 0),
-        in_chans: int = 1,
-        embed_dim: int = 768,
+            self,
+            kernel_size: Tuple[int, int] = (16, 16, 16),
+            stride: Tuple[int, int] = (16, 16, 16),
+            padding: Tuple[int, int] = (0, 0, 0),
+            in_chans: int = 1,
+            embed_dim: int = 768,
     ) -> None:
         """
         Args:
@@ -429,14 +437,14 @@ class PatchEmbed3D(nn.Module):
         """
         super().__init__()
 
-        self.proj = nn.Conv3d(
-            in_chans, embed_dim, kernel_size=kernel_size, stride=stride, padding=padding
-        )
+        self.proj = nn.Conv3d(in_chans,
+                              embed_dim,
+                              kernel_size=kernel_size,
+                              stride=stride,
+                              padding=padding)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.proj(x)
         # B C X Y Z -> B X Y Z C
         x = x.permute(0, 2, 3, 4, 1)
         return x
-
-
