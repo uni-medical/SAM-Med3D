@@ -10,7 +10,7 @@ from utils.infer_utils import validate_paired_img_gt
 
 if __name__ == "__main__":
     ''' prepare the pre-trained model with local path or huggingface url '''
-    ckpt_path = "https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth"
+    # ckpt_path = "https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth"
     # or you can use a local path like:
     # ckpt_path = "./ckpt/sam_med3d_turbo.pth"
 
