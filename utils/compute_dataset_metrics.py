@@ -69,7 +69,7 @@ def main():
     print(f"Found {len(prediction_files)} prediction files in {pred_dir}")
 
     # --- Process each prediction file ---
-    for pred_file in tqdm(prediction_files, desc="Processing files", unit="file"):
+    for pred_file in tqdm(prediction_files, desc="Computing metrics", unit="file"):
         filename = os.path.basename(pred_file)
         gt_file = os.path.join(gt_dir, filename)
 
