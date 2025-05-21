@@ -372,24 +372,3 @@ if __name__ == "__main__":
     output_path = osp.join(out_dir, osp.basename(npz_file))
     np.savez_compressed(output_path, segs=final_pred)
     print("result saved to", output_path)
-
-    # import pdb; pdb.set_trace()
-    # from surface_distance import compute_surface_distances, compute_surface_dice_at_tolerance, compute_dice_coefficient
-    # def compute_multi_class_dsc(gt, seg):
-    #     dsc = []
-    #     for i in np.unique(gt)[1:]: # skip bg
-    #         gt_i = gt == i
-    #         seg_i = seg == i
-    #         dsc.append(compute_dice_coefficient(gt_i, seg_i))
-    #         print("dsc", dsc[-1])
-    #     return np.mean(dsc)
-
-    # # compute_multi_class_dsc(roi_label, roi_label)
-    # img_data = np.load('/mnt/sh_flex_storage/home/wanghaoy/code/SAM_Med3D_debug/raw_data/biomed_val/3D_val_gt/CT_AbdomenAtlas_BDMAP_00000006.npz')
-    # gt = img_data['gts']
-
-    # # gt = (gt==2)
-    # # final_pred = (final_pred==1)
-    # dsc = compute_multi_class_dsc(gt, final_pred)
-    # print('all dice:', dsc)
-    # compute_multi_class_dsc(gt==3, np.flip(pred_ori.transpose(2, 1, 0), axes=1))
