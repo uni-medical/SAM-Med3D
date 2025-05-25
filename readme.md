@@ -138,23 +138,8 @@ img_datas = glob(os.path.join(PROJ_DIR, "data", "train", "*", "*"))
 
 
 #### 2. **Run the Training Script**: 
-Run `bash train.sh` to execute the following command in your terminal:
+You can refer to [`train.sh`](https://github.com/uni-medical/SAM-Med3D/blob/main/train.sh) and [train_ddp.sh](https://github.com/uni-medical/SAM-Med3D/blob/main/train_ddp.sh) for training.
 
-```
-python train.py --multi_gpu --task_name ${tag}
-```
-This will start the training process of the SAM-Med3D model on your prepared data. If you use only one GPU, remove the `--multi_gpu` flag.
-
-The key options are listed below:
-
-- task_name: task name
-- checkpoint: pre-trained checkpoint
-- work_dir: results folder for log and ckpt
-- multi_gpu: use multiple GPU with DDP
-- gpu_ids: set gpu ids used for training
-- batch_size: batch size for each GPU
-- num_epochs: number of epoches
-- lr: learning rate for training
 
 
 **Hint**: Use the `--checkpoint` to set the pre-trained weight path, the model will be trained from scratch if no ckpt in the path is found!
