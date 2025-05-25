@@ -128,18 +128,18 @@ import argparse
 from collections import OrderedDict
 import pandas as pd
 import numpy as np
-
+import traceback
 
 from scipy.ndimage import distance_transform_edt 
 import cc3d
-from surface_distance import compute_surface_distances, compute_surface_dice_at_tolerance, compute_dice_coefficient
+from SurfaceDice import compute_surface_distances, compute_surface_dice_at_tolerance, compute_dice_coefficient
 from scipy import integrate
 from tqdm import tqdm
 
 # Taken from CVPR24 challenge code with change to np.unique
 def compute_multi_class_dsc(gt, seg):
     dsc = []
-    for i in np.unique(gt)[1:]: # skip bg
+    for i in np.sort(pd.unique(gt.ravel()))[1:]: # skip bg
         gt_i = gt == i
         seg_i = seg == i
         dsc.append(compute_dice_coefficient(gt_i, seg_i))
@@ -148,15 +148,100 @@ def compute_multi_class_dsc(gt, seg):
 # Taken from CVPR24 challenge code with change to np.unique
 def compute_multi_class_nsd(gt, seg, spacing, tolerance=2.0):
     nsd = []
-    for i in np.unique(gt)[1:]: # skip bg
+    for i in np.sort(pd.unique(gt.ravel()))[1:]: # skip bg
         gt_i = gt == i
         seg_i = seg == i
         surface_distance = compute_surface_distances(
             gt_i, seg_i, spacing_mm=spacing
         )
         nsd.append(compute_surface_dice_at_tolerance(surface_distance, tolerance))
-        print(f"cls:{i}\t{nsd[-1]}")
     return np.mean(nsd)
+
+def patched_np_load(*args, **kwargs):
+    with np.load(*args, **kwargs) as f:
+        return dict(f) 
+
+def sample_coord(edt):
+    # Find all coordinates with max EDT value
+    np.random.seed(42)
+
+    max_val = edt.max()
+    max_coords = np.argwhere(edt == max_val)
+
+    # Uniformly choose one of them
+    chosen_index = max_coords[np.random.choice(len(max_coords))]
+
+    center = tuple(chosen_index)
+    return center
+
+# Compute the EDT with same shape as the image
+def compute_edt(error_component):
+    # Get bounding box of the largest error component to limit computation
+    coords = np.argwhere(error_component)
+    min_coords = coords.min(axis=0)
+    max_coords = coords.max(axis=0) + 1
+
+    crop_shape = max_coords - min_coords
+
+    # Compute padding (25% of crop size in each dimension)
+    padding =  np.maximum((crop_shape * 0.25).astype(int), 1)
+
+
+    # Define new padded shape
+    padded_shape = crop_shape + 2 * padding
+
+    # Create new empty array with padding
+    center_crop = np.zeros(padded_shape, dtype=np.uint8)
+
+    # Fill center region with actual cropped data
+    center_crop[
+        padding[0]:padding[0] + crop_shape[0],
+        padding[1]:padding[1] + crop_shape[1],
+        padding[2]:padding[2] + crop_shape[2]
+    ] = error_component[
+        min_coords[0]:max_coords[0],
+        min_coords[1]:max_coords[1],
+        min_coords[2]:max_coords[2]
+    ]
+
+    large_roi = False
+    if center_crop.shape[0] * center_crop.shape[1] * center_crop.shape[2] > 60000000:
+        from skimage.measure import block_reduce
+        print(f'ROI too large {center_crop.shape} --> 2x downsampling for EDT')
+        center_crop = block_reduce(center_crop, block_size=(2, 2, 2), func=np.max)
+        large_roi = True
+
+    # Compute EDT on the padded array
+    if torch.cuda.is_available() and not large_roi: # GPU available
+        import cupy as cp
+        from cucim.core.operations import morphology
+        error_mask_cp = cp.array(center_crop)
+        edt_cp = morphology.distance_transform_edt(error_mask_cp, return_distances=True)
+        edt = cp.asnumpy(edt_cp)
+    else: # CPU available only
+        edt = distance_transform_edt(center_crop)
+    
+    if large_roi: # upsample
+        edt = edt.repeat(2, axis=0).repeat(2, axis=1).repeat(2, axis=2)
+
+    # Crop out the center (remove padding)
+    dist_cropped = edt[
+        padding[0]:padding[0] + crop_shape[0],
+        padding[1]:padding[1] + crop_shape[1],
+        padding[2]:padding[2] + crop_shape[2]
+    ]
+
+    # Create full-sized EDT result array and splat back 
+    dist_full = np.zeros_like(error_component, dtype=dist_cropped.dtype)
+    dist_full[
+        min_coords[0]:max_coords[0],
+        min_coords[1]:max_coords[1],
+        min_coords[2]:max_coords[2]
+    ] = dist_cropped
+
+    dist_transformed = dist_full
+
+    return dist_transformed
 
 parser = argparse.ArgumentParser('Segmentation iterative refinement with clicks eavluation for docker containers', add_help=False)
 parser.add_argument('-i', '--test_img_path', default='3D_val_npz', type=str, help='testing data path')
@@ -173,14 +258,18 @@ docker_path = args.docker_folder_path
 validation_gts_path = args.validation_gts_path
 verbose = args.verbose
 
+if not os.path.exists(validation_gts_path):
+    validation_gts_path = None
+    print('[WARNING] Validation path does not exist for your GT data! Make sure you supplied the correct path or your .npz inputs have a gts key!')
+
 input_temp = './inputs/'
 output_temp = './outputs'
 os.makedirs(save_path, exist_ok=True)
 
-# dockers = sorted(os.listdir(docker_path))
+dockers = sorted(os.listdir(docker_path))
 test_cases = sorted(os.listdir(test_img_path))
 
-for docker in ["test_local"]:
+for docker in dockers:
     try:
         # create temp folers for inference one-by-one
         if os.path.exists(input_temp):
@@ -193,12 +282,12 @@ for docker in ["test_local"]:
         # load docker and create a new folder to save segmentation results
         teamname = docker.split('.')[0].lower()
         print('teamname docker: ', docker)
-        # os.system('docker image load -i {}'.format(join(docker_path, docker)))
+        os.system('docker image load -i {}'.format(join(docker_path, docker)))
         team_outpath = join(save_path, teamname)
         if os.path.exists(team_outpath):
             shutil.rmtree(team_outpath)
         os.makedirs(team_outpath)
-        # os.system(f'chmod -R 777 ./* >/dev/null 2>&1') # ignore output warnings/errors of this command with >/dev/null 2>&1
+        os.system(f'chmod -R 777 ./* >/dev/null 2>&1') # ignore output warnings/errors of this command with >/dev/null 2>&1
         
         # Evaluation Metrics
         metric = OrderedDict()
@@ -215,11 +304,27 @@ for docker in ["test_local"]:
         metric['NSD_AUC'] = []
         metric['DSC_Final'] = []
         metric['NSD_Final'] = []
+        metric['DSC_1'] = []
+        metric['DSC_2'] = []    
+        metric['DSC_3'] = []
+        metric['DSC_4'] = []
+        metric['DSC_5'] = []
+        metric['DSC_6'] = []
+        metric['NSD_1'] = []
+        metric['NSD_2'] = []
+        metric['NSD_3'] = []
+        metric['NSD_4'] = []
+        metric['NSD_5'] = []
+        metric['NSD_6'] = []
+        metric['num_class'] = []
+        metric['runtime_upperbound'] = []
         n_clicks = 5
         time_warning = False
 
         # To obtain the running time for each case, testing cases are inferred one-by-one
         for case in tqdm(test_cases):
+
+            metric_temp = {}
             real_running_time = 0
             dscs = []
             nsds = []
@@ -229,20 +334,34 @@ for docker in ["test_local"]:
             # copy input image to accumulate clicks in its dict
             shutil.copy(join(test_img_path, case), input_temp)
             if validation_gts_path is  None: # for training images
-                gts = np.load(join(input_temp, case))['gts']
+                gts = patched_np_load(join(input_temp, case), allow_pickle=True)['gts']
             else: # for validation or test images --> gts are in separate files to avoid label leakage during the course of the challenge
-                gts = np.load(join(validation_gts_path, case))['gts']
+                gts = patched_np_load(join(validation_gts_path, case), allow_pickle=True)['gts']
+                
+            unique_gts = np.sort(pd.unique(gts.ravel()))
+            num_classes = len(unique_gts) - 1
+            metric_temp['num_class'] = num_classes
+            metric_temp['runtime_upperbound'] = num_classes * 90
+
 
             # foreground and background clicks for each class
-            clicks_cls = [{'fg': [], 'bg': []} for _ in np.unique(gts)[1:]] # skip background class 0 
+            clicks_cls = [{'fg': [], 'bg': []} for _ in unique_gts[1:]] # skip background class 0 
+            clicks_order = [[] for _ in unique_gts[1:]]
+            if "boxes" in patched_np_load(join(input_temp, case), allow_pickle=True).keys():
+                boxes = patched_np_load(join(input_temp, case), allow_pickle=True)['boxes']
             
+
             for it in range(n_clicks + 1): # + 1 due to bbox pred at iteration 0
                 if it == 0:
-                    if "boxes" not in np.load(join(input_temp, case)).keys():
+                    if "boxes" not in patched_np_load(join(input_temp, case), allow_pickle=True).keys():
                         if verbose:
                             print(f'This sample does not use a Bounding Box for the initial iteration {it}') 
                         no_bbox = True
-                        metric["RunningTime_1"] = 0
+                        metric_temp["RunningTime_1"] = 0
+                        metric_temp["DSC_1"] = 0
+                        metric_temp["NSD_1"] = 0
+                        dscs.append(0)
+                        nsds.append(0)
                         continue
                     if verbose:
                         print(f'Using Bounding Box for iteration {it}') 
@@ -250,13 +369,13 @@ for docker in ["test_local"]:
                     if verbose:
                         print(f'Using Clicks for iteration {it}')
                     if os.path.isfile(join(output_temp, case)):
-                        segs = np.load(join(output_temp, case))['segs'].astype(np.uint8) # previous prediction
+                        segs = patched_np_load(join(output_temp, case), allow_pickle=True)['segs'].astype(np.uint8) # previous prediction
                     else:
                         segs = np.zeros_like(gts).astype(np.uint8) # in case the bbox prediction did not produce a result
                     all_segs.append(segs.astype(np.uint8))
 
                     # Refinement clicks
-                    for ind, cls in enumerate(sorted(np.unique(gts)[1:])):
+                    for ind, cls in enumerate(sorted(unique_gts[1:])):
                         if cls == 0:
                             continue # skip background
 
@@ -280,77 +399,84 @@ for docker in ["test_local"]:
                             # Find the voxel coordinates of the largest error component
                             largest_component = (errors == largest_component_error)
 
-                            # Get bounding box of the largest error component to limit computation
-                            coords = np.argwhere(largest_component)
-                            min_coords = coords.min(axis=0)
-                            max_coords = coords.max(axis=0) + 1
+                            edt = compute_edt(largest_component)
+                            edt *= largest_component # make sure correct voxels have a distance of 0
+                            if np.sum(edt) == 0: # no valid voxels to sample
+                                if verbose:
+                                    print("Error is extremely small --> Sampling uniformly instead of using EDT")
+                                edt = largest_component # in case EDT is empty (due to artifacts in resizing, simply sample a random voxel from the component), happens only for extremely small errors
 
-                            # Crop error to the bounding box of the largest error component
-                            cropped_mask = largest_component[
-                                min_coords[0]:max_coords[0],
-                                min_coords[1]:max_coords[1],
-                                min_coords[2]:max_coords[2],
-                            ]
-
-                            # Compute distance transform only within the bounding box to save time
-                            # if torch.cuda.is_available(): # GPU available
-                            #     import cupy as cp
-                            #     from cucim.core.operations import morphology
-                            #     error_mask_cp = cp.array(cropped_mask)
-                            #     edt_cp = morphology.distance_transform_edt(error_mask_cp)
-                            #     center = cp.unravel_index(cp.argmax(edt_cp), edt_cp.shape)
-                            #     center = np.array([int(center[0]), int(center[1]), int(center[2])])
-                            # else: # CPU available only
-                            edt = distance_transform_edt(cropped_mask)
-                            # Find the center in the cropped mask
-                            center = np.unravel_index(np.argmax(edt), edt.shape)
-
-                            center = tuple(min_coords + center)
-
+                            center = sample_coord(edt)
 
                             if gts_cls[center] == 0: # oversegmentation -> place background click
                                 assert segs_cls[center] == 1
                                 clicks_cls[ind]['bg'].append(list(center))
+                                clicks_order[ind].append('bg')
                             else: # undersegmentation -> place foreground click
                                 assert segs_cls[center] == 0
                                 clicks_cls[ind]['fg'].append(list(center))
+                                clicks_order[ind].append('fg')
 
                             assert largest_component[center] # click within error
 
                             if verbose:
                                 print(f"Class {cls}: Largest error component center is at {center}")
                         else:
+                            clicks_order[ind].append(None)
                             if verbose:
                                 print(f"Class {cls}: No error connected components found. Prediction is perfect! No clicks were added.")
-                    # import pdb; pdb.set_trace()
+                    
                     # update model input with new click
-                    input_img = np.load(join(input_temp, case))
+                    input_img = patched_np_load(join(input_temp, case), allow_pickle=True)
 
                     if validation_gts_path is None:
-                        np.savez_compressed(
-                            join(input_temp, case),
-                            imgs=input_img['imgs'],
-                            gts=input_img['gts'], # only for training images
-                            spacing=input_img['spacing'],
-                            clicks=clicks_cls, 
-                            prev_pred=segs,
-                        ) 
+                        if no_bbox:
+                            np.savez_compressed(
+                                join(input_temp, case),
+                                imgs=input_img['imgs'],
+                                gts=input_img['gts'], # only for training images
+                                spacing=input_img['spacing'],
+                                clicks=clicks_cls,
+                                clicks_order=clicks_order, 
+                                prev_pred=segs,
+                            ) 
+                        else:
+                            np.savez_compressed(
+                                join(input_temp, case),
+                                imgs=input_img['imgs'],
+                                gts=input_img['gts'], # only for training images
+                                spacing=input_img['spacing'],
+                                clicks=clicks_cls, 
+                                clicks_order=clicks_order, 
+                                prev_pred=segs,
+                                boxes=boxes,
+                            ) 
                     else:
-                        np.savez_compressed(
-                            join(input_temp, case),
-                            imgs=input_img['imgs'],
-                            spacing=input_img['spacing'],
-                            clicks=clicks_cls, 
-                            prev_pred=segs,
-                        ) 
-                
+                        if no_bbox:
+                            np.savez_compressed(
+                                join(input_temp, case),
+                                imgs=input_img['imgs'],
+                                spacing=input_img['spacing'],
+                                clicks=clicks_cls, 
+                                clicks_order=clicks_order, 
+                                prev_pred=segs,
+                            ) 
+                        else:
+                            np.savez_compressed(
+                                join(input_temp, case),
+                                imgs=input_img['imgs'],
+                                spacing=input_img['spacing'],
+                                clicks=clicks_cls, 
+                                clicks_order=clicks_order, 
+                                prev_pred=segs,
+                                boxes=boxes,
+                            ) 
 
                 # Model inference on the current input
-                # if torch.cuda.is_available(): # GPU available
-                #     cmd = 'docker container run --gpus "device=0" -m 8G --name {} --rm -v $PWD/inputs/:/workspace/inputs/ -v $PWD/outputs/:/workspace/outputs/ {}:latest /bin/bash -c "sh predict.sh" '.format(teamname, teamname)
-                # else:
-                #     cmd = 'docker container run -m 8G --name {} --rm -v $PWD/inputs/:/workspace/inputs/ -v $PWD/outputs/:/workspace/outputs/ {}:latest /bin/bash -c "sh predict.sh" '.format(teamname, teamname)
-                cmd = 'bash predict.sh'
+                if torch.cuda.is_available(): # GPU available
+                    cmd = 'docker container run --gpus "device=0" -m 32G --name {} --rm -v $PWD/inputs/:/workspace/inputs/ -v $PWD/outputs/:/workspace/outputs/ blueyo0/{}:latest /bin/bash -c "sh predict.sh" '.format(teamname.replace('/', '_'), teamname)
+                else:
+                    cmd = 'docker container run -m 32G --name {} --rm -v $PWD/inputs/:/workspace/inputs/ -v $PWD/outputs/:/workspace/outputs/ {}:latest /bin/bash -c "sh predict.sh" '.format(teamname.replace('/', '_'), teamname)
                 if verbose:
                     print(teamname, ' docker command:', cmd, '\n', 'testing image name:', case)
                 start_time = time.time()
@@ -358,24 +484,26 @@ for docker in ["test_local"]:
                 infer_time = time.time() - start_time
                 real_running_time += infer_time # only add the inference time without the click generation time
                 print(f"{case} finished! Inference time: {infer_time}")
-                metric[f"RunningTime_{it + 1}"] = infer_time
+                metric_temp[f"RunningTime_{it + 1}"] = infer_time
 
                 if not os.path.isfile(join(output_temp, case)):
-                    print(f"[WARNING] Failed / Skipped prediction for iteration {ind}! Setting predcition to zeros...")
+                    print(f"[WARNING] Failed / Skipped prediction for iteration {it}! Setting prediction to zeros...")
                     segs = np.zeros_like(gts).astype(np.uint8)
                 else:
-                    segs = np.load(join(output_temp, case))['segs']
+                    segs = patched_np_load(join(output_temp, case), allow_pickle=True)['segs']
                 all_segs.append(segs.astype(np.uint8))
 
                 dsc = compute_multi_class_dsc(gts, segs)
                 # compute nsd
                 if dsc > 0.2:
                     # only compute nsd when dice > 0.2 because NSD is also low when dice is too low
-                    nsd = compute_multi_class_nsd(gts, segs, np.load(join(input_temp, case))['spacing'])
+                    nsd = compute_multi_class_nsd(gts, segs, patched_np_load(join(input_temp, case), allow_pickle=True)['spacing'])
                 else:
                     nsd = 0.0 # Assume model performs poor on this sample
                 dscs.append(dsc)
                 nsds.append(nsd)
+                metric_temp[f'DSC_{it + 1}'] = dsc
+                metric_temp[f'NSD_{it + 1}'] = nsd
                 print('Dice', dsc, 'NSD', nsd)
                 seg_name = case
 
@@ -383,7 +511,7 @@ for docker in ["test_local"]:
                 # Copy temp prediction to the final folder
                 try:
                     shutil.copy(join(output_temp, seg_name), join(team_outpath, seg_name))
-                    segs = np.load(join(team_outpath, seg_name))['segs']
+                    segs = patched_np_load(join(team_outpath, seg_name), allow_pickle=True)['segs']
                     np.savez_compressed(
                         join(team_outpath, seg_name),
                         segs=segs,
@@ -391,24 +519,28 @@ for docker in ["test_local"]:
                     ) 
                 except:
                     print(f"{join(output_temp, seg_name)}, {join(team_outpath, seg_name)}")
+                    if os.path.exists(join(team_outpath, seg_name)):
+                        os.remove(team_outpath, seg_name) # clean up cached files if model has failed
                     print("Final prediction could not be copied!")
             
 
-            if real_running_time > 90 * (len(np.unique(gts)) - 1):
+            if real_running_time > 90 * (len(unique_gts) - 1):
                 print("[WARNING] Your model seems to take more than 90 seconds per class during inference! The final test set will have a time constraint of 90s per class --> Make sure to optimize your approach!")
                 time_warning = True
             # Compute interactive metrics
-            n_interactions = n_clicks if no_bbox else n_clicks + 1
-            dsc_auc = integrate.cumulative_trapezoid(np.array(dscs), np.arange(n_interactions))[-1]
-            nsd_auc = integrate.cumulative_trapezoid(np.array(nsds), np.arange(n_interactions))[-1]
+            dsc_auc = integrate.cumulative_trapezoid(np.array(dscs[-n_clicks:]), np.arange(n_clicks))[-1] # AUC is only over the point prompts since the bbox prompt is optional
+            nsd_auc = integrate.cumulative_trapezoid(np.array(nsds[-n_clicks:]), np.arange(n_clicks))[-1] 
             dsc_final = dscs[-1]
             nsd_final = nsds[-1]
-            metric['CaseName'].append(case)
-            metric['TotalRunningTime'].append(real_running_time)
-            metric['DSC_AUC'].append(dsc_auc)
-            metric['NSD_AUC'].append(nsd_auc)
-            metric['DSC_Final'].append(dsc_final)
-            metric['NSD_Final'].append(nsd_final)
+            if os.path.exists(join(team_outpath, seg_name)): # add to csv only if final prediction is successful
+                for k, v in metric_temp.items():
+                    metric[k].append(v)
+                metric['CaseName'].append(case)
+                metric['TotalRunningTime'].append(real_running_time)
+                metric['DSC_AUC'].append(dsc_auc)
+                metric['NSD_AUC'].append(nsd_auc)
+                metric['DSC_Final'].append(dsc_final)
+                metric['NSD_Final'].append(nsd_final)
             os.remove(join(input_temp, case))  
 
             metric_df = pd.DataFrame(metric)
@@ -416,10 +548,12 @@ for docker in ["test_local"]:
 
         # Clean up for next docker
         torch.cuda.empty_cache()
-        os.system("docker rmi {}:latest".format(teamname))
+        os.system("docker rmi {}:latest".format(teamname.split('_')[0]))
         shutil.rmtree(input_temp)
         shutil.rmtree(output_temp)
         if time_warning: # repeat warning at the end as well
             print("[WARNING] Your model seems to take more than 90 seconds per class during inference for some images! The final test set will have a time constraint of 90s per class --> Make sure to optimize your approach!")
     except Exception as e:
         print(e)
+        traceback.print_exc()
+        print(f"Error processing {case} with docker {docker}. Skipping this docker.")

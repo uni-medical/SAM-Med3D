@@ -8,6 +8,14 @@ __pycache__/*
 test_data/*
 data/*
 
+# used for iter_val
+3D_val_npz/*
+3D_val_gt_interactive_seg/*
+team_docker/*
+inputs/*
+outputs/*
+seg/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

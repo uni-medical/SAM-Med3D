@@ -335,7 +335,8 @@ if __name__ == "__main__":
     ''' 1. prepare the pre-trained model with local path or huggingface url '''
     # ckpt_path = "https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth"
     # or you can use the local path like: 
-    ckpt_path = "./ckpt/sam_med3d_turbo_bbox_cvpr.pth"
+    # ckpt_path = "./ckpt/sam_med3d_turbo_bbox_cvpr.pth" # 10 percent of data
+    ckpt_path = "./ckpt/sam_med3d_turbo_cvpr_all.pth" # all data
     model = medim.create_model("SAM-Med3D",
                                pretrained=True,
                                checkpoint_path=ckpt_path)
