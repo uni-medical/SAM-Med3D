@@ -4,10 +4,8 @@
 And here's a quick tutorial to help you start from our baseline.
 
 ## Docker image download links
- - coreset: [ugreen drive](https://ug.link/haoyushare/filemgr/share-download/?id=212793383c4241e993128f39833ff5d0)
- - alldata: [ugreen drive](https://ug.link/haoyushare/filemgr/share-download/?id=a194a6b1c9d3468fa8bcb91916b8220e)
-
-Google Drive is WIP.
+ - coreset: [google drive](https://drive.google.com/file/d/1-9tMSbDDFGEo41irO02wnO7EaU6clqIw/view?usp=sharing) [ugreen drive](https://ug.link/haoyushare/filemgr/share-download/?id=212793383c4241e993128f39833ff5d0)
+ - alldata: [google drive](https://drive.google.com/file/d/1-12lQNE_BDY3pHBCyJ9zrFh-iXGX7Htu/view?usp=sharing) [ugreen drive](https://ug.link/haoyushare/filemgr/share-download/?id=a194a6b1c9d3468fa8bcb91916b8220e)
 
 ## ➡️ Quick tutorial to reproduce the SAM-Med3D baseline
 ### How to infer/evaluate with SAM-Med3D
