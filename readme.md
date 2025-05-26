@@ -19,7 +19,7 @@ This docker will predict all data in `inputs` and save the results in the `outpu
 
 #### From the source code and checkpoint
 Follow the following steps to run the prediction code:
-1. Download the finetuned version of ckpt `sam_med3d_turbo_bbox_cvpr.pth` from [huggingface](https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo_bbox_cvpr.pth) and then put it into `ckpt`;
+1. Download the finetuned version of ckpt `sam_med3d_turbo_cvpr_coreset.pth` from [huggingface](https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo_cvpr_coreset.pth) and then put it into `ckpt`;
 2. Put your test data into `inputs`;
 3. Follow the [readme](https://github.com/uni-medical/SAM-Med3D?tab=readme-ov-file#quick-start-for-sam-med3d-inference) in SAM-Med3D to install dependency:
 ``` bash
