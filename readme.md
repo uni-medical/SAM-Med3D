@@ -5,15 +5,15 @@ And here's a quick tutorial to help you start from our baseline.
 
 ## Docker image download links
  - coreset: [Google Drive](https://drive.google.com/file/d/1-9tMSbDDFGEo41irO02wnO7EaU6clqIw/view?usp=sharing) [Ugreen Drive](https://ug.link/haoyushare/filemgr/share-download/?id=212793383c4241e993128f39833ff5d0)
- - alldata: [Google Drive](https://drive.google.com/file/d/1-12lQNE_BDY3pHBCyJ9zrFh-iXGX7Htu/view?usp=sharing) [Ugreen Drive](https://ug.link/haoyushare/filemgr/share-download/?id=a194a6b1c9d3468fa8bcb91916b8220e)
+ - alldata: [Google Drive](https://drive.google.com/file/d/1-AIr_sWbI7gP2KJWkoqh8GlY5Brnu8zo/view?usp=sharing) [Ugreen Drive](http://ug.link/haoyushare/filemgr/share-download/?id=8a7b85039afe417d8915da49a1287101)
  - checkpoints: [Coreset](https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo_cvpr_coreset.pth) [AllData](https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo_cvpr_alldata.pth)
 
 ## ➡️ Quick tutorial to reproduce the SAM-Med3D baseline
 ### How to infer/evaluate with SAM-Med3D
 #### From the docker image
-You can download the docker image from [Google Drive](https://drive.google.com/file/d/1NO6sPJT9dQXSYNK_y2_L7V109yOnAgi7/view?usp=drive_link) and run it with this command:
+You can download the docker image from the above links and run it with this command:
 ``` bash
-docker container run --gpus "device=0" -m 32G --name sammed3d --rm -v $PWD/inputs/:/workspace/inputs/ -v $PWD/outputs/:/workspace/outputs/ blueyo0/sammed3d_baseline:latest /bin/bash -c "sh predict.sh"
+docker container run --gpus "device=0" -m 32G --name sammed3d --rm -v $PWD/inputs/:/workspace/inputs/ -v $PWD/outputs/:/workspace/outputs/ <docker image name> /bin/bash -c "sh predict.sh"
 ```
 This docker will predict all data in `inputs` and save the results in the `outputs`. Details of the challenge evaluation code can be found in [link](https://github.com/JunMa11/CVPR-MedSegFMCompetition/tree/main).
 
