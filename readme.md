@@ -26,9 +26,7 @@ we recommend checking out [OpenGVLab](https://github.com/OpenGVLab) for more exc
 
 ## 🔗 Checkpoint
 
-**SAM-Med3D-turbo**: [Hugging Face](https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth) | [Google Drive](https://drive.google.com/file/d/1MuqYRQKIZb4YPtEraK8zTKKpp-dUQIR9/view?usp=sharing) | [Baidu NetDisk (pwd:l6ol)](https://pan.baidu.com/s/1OEVtiDc6osG0l9HkQN4hEg?pwd=l6ol)
-
-
+**SAM-Med3D-turbo**: [Hugging Face](https://huggingface.co/blueyo0/SAM-Med3D/blob/main/sam_med3d_turbo.pth) | [Google Drive](https://drive.google.com/file/d/1MuqYRQKIZb4YPtEraK8zTKKpp-dUQIR9/view?usp=sharing)  | [HF-Mirror](https://hf-mirror.com/blueyo0/SAM-Med3D/tree/main)
 ## 🔨 Usage
 ### 1. Quick Start for SAM-Med3D
 > **Note:**
