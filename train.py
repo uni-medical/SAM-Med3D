@@ -344,7 +344,7 @@ class BaseTrainer:
                 image3D = image3D.unsqueeze(dim=1)
 
                 image3D = image3D.to(device)
-                gt3D = gt3D.to(device).type(torch.long)
+                gt3D = gt3D.to(device).type(torch.float)
                 with torch.amp.autocast("cuda"):
                     image_embedding = sam_model.image_encoder(image3D)
 
